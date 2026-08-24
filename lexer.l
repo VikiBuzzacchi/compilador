@@ -1,9 +1,14 @@
 %{
     // Analizador Léxico
 
-    #include "parser.tab.h"
+    #include <stdio.h>
     #include <string.h>
+    #include "parser.tab.h"
+
+    int errores_lexicos = 0;
 %}
+
+%option yylineno
 
 %%
 "main"      { return MAIN; }
@@ -24,7 +29,8 @@
 "("         { return '('; }
 ")"         { return ')'; }
 ";"         { return ';'; }
-[ \t\n]+    { /* ignorar */ }
-.           { printf("Error léxico: %s\n", yytext); }
+[ \t]+      { /* ignorar */ }
+\n          { /* ignorar */ }
+.           { errores_lexicos++; fprintf(stderr, "Error léxico: símbolo '%s' no reconocido en la línea %d\n", yytext, yylineno); return INVALID; }
 %%
 int yywrap() { return 1; }

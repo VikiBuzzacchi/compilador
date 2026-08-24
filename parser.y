@@ -6,8 +6,10 @@
 #include "symbol_table.h"
 
 extern int yylex();
+extern int errores_lexicos;
 void yyerror(const char *s);
 struct node *root;
+int errores_sintacticos = 0;
 %}
 
 %union {
@@ -16,7 +18,7 @@ struct node *root;
     struct node *ast;
 }
 
-%token MAIN INT BOOL TRUE FALSE
+%token MAIN INT BOOL TRUE FALSE INVALID
 %token <id> ID
 %token <val> CONST
 %token RETURN VOID
@@ -41,6 +43,8 @@ sent: INT ID ';'        { install_symbol($2, TYPE_INT); $$ = NULL; }
     | ID '=' exp ';'    { $$ = create_node(NODE_ASG, create_var_node($1), $3); }
     | RETURN exp ';'    { $$ = create_node(NODE_RET, $2, NULL); }
     | RETURN ';'        { $$ = create_node(NODE_RET, NULL, NULL); }
+    | INVALID ';'       { errores_sintacticos++; yyerrok; $$ = NULL; }
+    | error ';'         { errores_sintacticos++; yyerrok; $$ = NULL; }
     ;
 
 exp: exp '+' exp        { $$ = create_node(NODE_ADD, $1, $3); }
@@ -54,4 +58,7 @@ exp: exp '+' exp        { $$ = create_node(NODE_ADD, $1, $3); }
    | '(' exp ')'        { $$ = $2; }
    ;
 %%
-void yyerror(const char *s) { fprintf(stderr, "Error sintáctico: %s\n", s); }
+void yyerror(const char *s) {
+    errores_sintacticos++;
+    fprintf(stderr, "Error sintáctico: %s\n", s);
+}
