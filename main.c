@@ -3,13 +3,13 @@
 
 extern int yyparse();
 extern struct node *root;
-extern int errores_lexicos;
-extern int errores_sintacticos;
+extern int lexical_errors;
+extern int syntax_errors;
 
 int main() {
     int ok = yyparse();
 
-    if (ok == 0 && errores_lexicos == 0 && errores_sintacticos == 0) {
+    if (ok == 0 && lexical_errors == 0 && syntax_errors == 0) {
         printf("\n--- Análisis sintáctico exitoso ---\n");
         printf("\n--- Generando Código Pseudo-Assembly ---\n");
         gen_code(root);
@@ -18,14 +18,14 @@ int main() {
     } else {
         printf("\nFallo en el análisis sintáctico.\n");
 
-        if (errores_lexicos > 0) {
-            printf("Errores léxicos: %d\n", errores_lexicos);
+        if (lexical_errors > 0) {
+            printf("Errores léxicos: %d\n", lexical_errors);
         }
-        if (errores_sintacticos > 0) {
-            printf("Errores sintácticos: %d\n", errores_sintacticos);
+        if (syntax_errors > 0) {
+            printf("Errores sintácticos: %d\n", syntax_errors);
         }
 
-        int total = errores_lexicos + errores_sintacticos;
+        int total = lexical_errors + syntax_errors;
         printf("Se encontraron %d errores en total.\n", total);
     }
 

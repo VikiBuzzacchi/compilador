@@ -5,7 +5,7 @@
     #include <string.h>
     #include "parser.tab.h"
 
-    int errores_lexicos = 0;
+    int lexical_errors = 0;
 %}
 
 %option yylineno
@@ -31,6 +31,6 @@
 ";"         { return ';'; }
 [ \t]+      { /* ignorar */ }
 \n          { /* ignorar */ }
-.           { errores_lexicos++; fprintf(stderr, "Error léxico: símbolo '%s' no reconocido en la línea %d\n", yytext, yylineno); return INVALID; }
+.           { lexical_errors++; fprintf(stderr, "Error léxico: símbolo '%s' no reconocido en la línea %d\n", yytext, yylineno); return INVALID; }
 %%
 int yywrap() { return 1; }
