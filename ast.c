@@ -36,14 +36,18 @@ int eval(struct node *t) {
     if (!t) return 0;
     switch(t->type) {
         case NODE_INT: return t->val;
-        case NODE_VAR: return get_value_from_table(t->id);
+        case NODE_VAR: {
+            struct symbol *s = search_symbol(t->id);
+            return s ? s->value : 0;
+        }
         case NODE_NEG: return -eval(t->left);
         case NODE_ADD: return eval(t->left) + eval(t->right);
         case NODE_SUB: return eval(t->left) - eval(t->right);
         case NODE_MUL: return eval(t->left) * eval(t->right);
         case NODE_ASG: {
             int val = eval(t->right);
-            update_symbol_value(t->left->id, val);
+            struct symbol *s = search_symbol(t->left->id);
+            if (s) s->value = val;
             return val;
         }
         case NODE_SEQ:

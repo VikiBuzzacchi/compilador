@@ -33,13 +33,13 @@ int syntax_errors = 0;
 %%
 tipo_main: INT | BOOL | VOID ;
 
-program: tipo_main MAIN '(' ')' '{' lista_sent '}' { root = $6; } ;
+program: tipo_main MAIN '(' ')' '{' { init_symbol_table(); } lista_sent '}' { root = $7; } ;
 
 lista_sent: sent lista_sent { $$ = create_node(NODE_SEQ, $1, $2); }
           | { $$ = NULL; } ;
 
-sent: INT ID ';'        { install_symbol($2, TYPE_INT); $$ = NULL; }
-    | BOOL ID ';'       { install_symbol($2, TYPE_BOOL); $$ = NULL; }
+sent: INT ID ';'        { insert_symbol($2, TYPE_INT); $$ = NULL; }
+    | BOOL ID ';'       { insert_symbol($2, TYPE_BOOL); $$ = NULL; }
     | ID '=' exp ';'    { $$ = create_node(NODE_ASG, create_var_node($1), $3); }
     | RETURN exp ';'    { $$ = create_node(NODE_RET, $2, NULL); }
     | RETURN ';'        { $$ = create_node(NODE_RET, NULL, NULL); }

@@ -3,51 +3,63 @@
 #include <string.h>
 #include "symbol_table.h"
 
-#define MAX_SYMBOLS 100
-
-struct symbol {
-    char *name;
-    int type;
-    int value;
+struct level {
+    struct symbol *symbols;
+    struct level *prev;
 };
 
-struct symbol sym_table[MAX_SYMBOLS];
-int sym_count = 0;
+static struct level *top = NULL;
 
-void install_symbol(char *name, int type) {
-    for (int i = 0; i < sym_count; i++) {
-        if (strcmp(sym_table[i].name, name) == 0) {
-            printf("Error semántico: Variable '%s' ya declarada.\n", name);
-            return;
-        }
-    }
-    if (sym_count < MAX_SYMBOLS) {
-        sym_table[sym_count].name = strdup(name);
-        sym_table[sym_count].type = type;
-        sym_table[sym_count].value = 0;
-        sym_count++;
-    } else {
-        printf("Error: Tabla de símbolos llena.\n");
-    }
+void init_symbol_table(void) {
+    top = NULL;
+    open_level();
 }
 
-int get_symbol_index(char *name) {
-    for (int i = 0; i < sym_count; i++) {
-        if (strcmp(sym_table[i].name, name) == 0) {
-            return i;
+void open_level(void) {
+    struct level *lvl = malloc(sizeof(struct level));
+    lvl->symbols = NULL;
+    lvl->prev = top;
+    top = lvl;
+}
+
+void close_level(void) {
+    if (!top) return;
+    struct level *lvl = top;
+    struct symbol *s = lvl->symbols;
+    while (s) {
+        struct symbol *next = s->next;
+        free(s->name);
+        free(s);
+        s = next;
+    }
+    top = lvl->prev;
+    free(lvl);
+}
+
+struct symbol *insert_symbol(char *name, int type) {
+    if (!top) return NULL;
+    for (struct symbol *s = top->symbols; s; s = s->next) {
+        if (strcmp(s->name, name) == 0) {
+            printf("Error semántico: Variable '%s' ya declarada.\n", name);
+            return NULL;
+        }
+    }
+    struct symbol *s = malloc(sizeof(struct symbol));
+    s->flag = 0;
+    s->name = strdup(name);
+    s->type = type;
+    s->value = 0;
+    s->next = top->symbols;
+    top->symbols = s;
+    return s;
+}
+
+struct symbol *search_symbol(char *name) {
+    for (struct level *lvl = top; lvl; lvl = lvl->prev) {
+        for (struct symbol *s = lvl->symbols; s; s = s->next) {
+            if (strcmp(s->name, name) == 0) return s;
         }
     }
     printf("Error semántico: Variable '%s' no declarada.\n", name);
-    return -1;
-}
-
-int get_value_from_table(char *name) {
-    int idx = get_symbol_index(name);
-    if (idx != -1) return sym_table[idx].value;
-    return 0;
-}
-
-void update_symbol_value(char *name, int value) {
-    int idx = get_symbol_index(name);
-    if (idx != -1) sym_table[idx].value = value;
+    return NULL;
 }
