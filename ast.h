@@ -3,12 +3,15 @@
 #ifndef AST_H
 #define AST_H
 
+#include "symbol_table.h"
+
 enum node_type { NODE_INT, NODE_VAR, NODE_ADD, NODE_SUB, NODE_MUL, NODE_NEG, NODE_ASG, NODE_SEQ, NODE_RET };
 
 struct node {
     enum node_type type;
     int val;
     char *id;
+    struct symbol *sym;
     struct node *left;
     struct node *right;
 };

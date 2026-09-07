@@ -10,6 +10,7 @@ struct node *create_node(enum node_type type, struct node *left, struct node *ri
     n->left = left;
     n->right = right;
     n->id = NULL;
+    n->sym = NULL;
     n->val = 0;
     return n;
 }
@@ -18,6 +19,7 @@ struct node *create_var_node(char *id) {
     struct node *n = malloc(sizeof(struct node));
     n->type = NODE_VAR;
     n->id = strdup(id);
+    n->sym = search_symbol(id);
     n->left = NULL;
     n->right = NULL;
     return n;
@@ -27,6 +29,7 @@ struct node *create_const_node(int val) {
     struct node *n = malloc(sizeof(struct node));
     n->type = NODE_INT;
     n->val = val;
+    n->sym = NULL;
     n->left = NULL;
     n->right = NULL;
     return n;
@@ -37,8 +40,7 @@ int eval(struct node *t) {
     switch(t->type) {
         case NODE_INT: return t->val;
         case NODE_VAR: {
-            struct symbol *s = search_symbol(t->id);
-            return s ? s->value : 0;
+            return t->sym ? t->sym->value : 0;
         }
         case NODE_NEG: return -eval(t->left);
         case NODE_ADD: return eval(t->left) + eval(t->right);
@@ -46,8 +48,7 @@ int eval(struct node *t) {
         case NODE_MUL: return eval(t->left) * eval(t->right);
         case NODE_ASG: {
             int val = eval(t->right);
-            struct symbol *s = search_symbol(t->left->id);
-            if (s) s->value = val;
+            if (t->left->sym) t->left->sym->value = val;
             return val;
         }
         case NODE_SEQ:
