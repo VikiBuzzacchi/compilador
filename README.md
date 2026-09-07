@@ -35,13 +35,11 @@ errores, se listan con su número de línea y no se genera código.
 
 ## Estructura del proyecto
 
-1. Gramática extendida (gramatica.md)
-2. Expresiones regulares (expresiones-regulares.md)
-3. Analizador léxico (lexer.l)
-4. Parser, lex + bison (parser.y)
-5. AST (ast.h, ast.c)
-6. Intérprete + tabla de símbolos (symbol_table.c)
-7. Generador de pseudo-assembly
+1. Analizador léxico (lexer.l)
+2. Parser, lex + bison (parser.y)
+3. AST (ast.h, ast.c)
+4. Intérprete + tabla de símbolos (symbol_table.c)
+5. Generador de pseudo-assembly
 
 ## Tabla de símbolos
 
