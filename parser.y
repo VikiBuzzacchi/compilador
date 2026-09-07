@@ -18,7 +18,7 @@ int syntax_errors = 0;
     struct node *ast;
 }
 
-%token MAIN INT BOOL TRUE FALSE INVALID
+%token MAIN INT BOOL TRUE FALSE
 %token <id> ID
 %token <val> CONST
 %token RETURN VOID
@@ -43,8 +43,7 @@ sent: INT ID ';'        { insert_symbol($2, TYPE_INT); $$ = NULL; }
     | ID '=' exp ';'    { $$ = create_node(NODE_ASG, create_var_node($1), $3); }
     | RETURN exp ';'    { $$ = create_node(NODE_RET, $2, NULL); }
     | RETURN ';'        { $$ = create_node(NODE_RET, NULL, NULL); }
-    | INVALID ';'       { syntax_errors++; yyerrok; $$ = NULL; }
-    | error ';'         { syntax_errors++; yyerrok; $$ = NULL; }
+    | error ';'         { yyerrok; $$ = NULL; }
     ;
 
 exp: exp '+' exp        { $$ = create_node(NODE_ADD, $1, $3); }

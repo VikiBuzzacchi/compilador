@@ -31,6 +31,6 @@
 ";"         { return ';'; }
 [ \t]+      { /* ignorar */ }
 \n          { /* ignorar */ }
-.           { lexical_errors++; fprintf(stderr, "Error léxico: símbolo '%s' no reconocido en la línea %d\n", yytext, yylineno); return INVALID; }
+.           { lexical_errors++; fprintf(stderr, "Error léxico: símbolo '%s' no reconocido en la línea %d\n", yytext, yylineno); }
 %%
 int yywrap() { return 1; }
