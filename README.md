@@ -38,8 +38,9 @@ errores, se listan con su número de línea y no se genera código.
 1. Analizador léxico (lexer.l)
 2. Parser, lex + bison (parser.y)
 3. AST (ast.h, ast.c)
-4. Intérprete + tabla de símbolos (symbol_table.c)
-5. Generador de pseudo-assembly
+4. tabla de símbolos (symbol_table.c)
+5. Intérprete (ast.c)
+6. Generador de pseudo-assembly (ast.c)
 
 ## Tabla de símbolos
 
