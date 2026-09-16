@@ -14,48 +14,121 @@ int syntax_errors = 0;
 
 %union {
     int val;
+    float fval;
     char *id;
     struct node *ast;
 }
 
-%token MAIN INT BOOL TRUE FALSE
+%token INT BOOLEAN TRUE FALSE
 %token <id> ID
-%token <val> CONST
+%token <val> CONSTINT
+%token <fval> CONSTFLOAT
 %token RETURN VOID
-%type <ast> exp sent lista_sent
+%token ELSE IF WHILE FLOAT
+%token OR_OP AND_OP EQ_OP
 
 %start program
 
-%left '+' '-'
-%left '*'
-%nonassoc UMINUS
-
 %%
-tipo_main: INT | BOOL | VOID ;
+program: var_decl_list method_decl_list ;
 
-program: tipo_main MAIN '(' ')' '{' { init_symbol_table(); } lista_sent '}' { root = $7; } ;
+var_decl_list: var_decl var_decl_list
+             | %empty
+             ;
 
-lista_sent: sent lista_sent { $$ = create_node(NODE_SEQ, $1, $2); }
-          | { $$ = NULL; } ;
+var_decl: type id_list ';' ;
 
-sent: INT ID ';'        { insert_symbol($2, TYPE_INT); $$ = NULL; }
-    | BOOL ID ';'       { insert_symbol($2, TYPE_BOOL); $$ = NULL; }
-    | ID '=' exp ';'    { $$ = create_node(NODE_ASG, create_var_node($1), $3); }
-    | RETURN exp ';'    { $$ = create_node(NODE_RET, $2, NULL); }
-    | RETURN ';'        { $$ = create_node(NODE_RET, NULL, NULL); }
-    | error ';'         { yyerrok; $$ = NULL; }
+id_list: ID
+       | ID ',' id_list
+       ;
+
+method_decl_list: method_decl method_decl_list
+                 | %empty
+                 ;
+
+method_decl: type ID '(' param_list ')' block
+           | VOID ID '(' param_list ')' block
+           ;
+
+param_list: param_list_ne
+          | %empty
+          ;
+
+param_list_ne: type ID
+             | type ID ',' param_list_ne
+             ;
+
+block: '{' var_decl_list statement_list '}' ;
+
+statement_list: statement statement_list
+              | %empty
+              ;
+
+type: INT
+    | BOOLEAN
+    | FLOAT
     ;
 
-exp: exp '+' exp        { $$ = create_node(NODE_ADD, $1, $3); }
-   | exp '-' exp        { $$ = create_node(NODE_SUB, $1, $3); }
-   | exp '*' exp        { $$ = create_node(NODE_MUL, $1, $3); }
-   | '-' exp %prec UMINUS { $$ = create_node(NODE_NEG, $2, NULL); }
-   | CONST              { $$ = create_const_node($1); }
-   | ID                 { $$ = create_var_node($1); }
-   | TRUE               { $$ = create_const_node(1); }
-   | FALSE              { $$ = create_const_node(0); }
-   | '(' exp ')'        { $$ = $2; }
-   ;
+statement: ID '=' expr ';'
+         | method_call ';'
+         | IF '(' expr ')' block
+         | IF '(' expr ')' block ELSE block
+         | WHILE '(' expr ')' block
+         | RETURN expr ';'
+         | RETURN ';'
+         | ';'
+         | block
+         | error ';'      { yyerrok; }
+         ;
+
+method_call: ID '(' expr_list ')' ;
+
+expr_list: expr_list_ne
+         | %empty
+         ;
+
+expr_list_ne: expr
+            | expr ',' expr_list_ne
+            ;
+
+expr: ID
+    | method_call
+    | literal
+    | expr bin_op expr
+    | '-' expr
+    | '!' expr
+    | '(' expr ')'
+    ;
+
+bin_op: arith_op
+      | rel_op
+      | cond_op
+      ;
+
+arith_op: '+'
+        | '-'
+        | '*'
+        | '/'
+        | '%'
+        ;
+
+rel_op: '<'
+      | '>'
+      | EQ_OP
+      ;
+
+cond_op: AND_OP
+       | OR_OP
+       ;
+
+literal: CONSTINT
+       | CONSTFLOAT
+       | bool_literal
+       ;
+
+bool_literal: TRUE
+            | FALSE
+            ;
 %%
 void yyerror(const char *s) {
     syntax_errors++;
