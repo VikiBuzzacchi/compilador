@@ -12,12 +12,10 @@
 %option yylineno
 
 %%
-"main"      { return MAIN; }
+    /* Palabras reservadas */
 
-/* Palabras reservadas */
-
-"boolean"   { return BOOLEAN; }
-"else"      { return ELSE; }
+"boolean"   { fprintf(BOOLEAN); return BOOLEAN; }
+"else"      { fprintf(ELSE); return ELSE; }
 "false"     { return FALSE; }
 "if"        { return IF; }
 "int"       { return INT; }
@@ -27,27 +25,36 @@
 "while"     { return WHILE; }
 "float"     { return FLOAT; }
 
-/* Comentarios y espacios */
+    /* Comentarios y espacios */
 
-"//".*    { /* ignorar */}
-"/*"[a-zA-Z][a-zA-Z0-9\n]*"*/"    { /* ignorar */}
+"//".*    { /* comentario de linea */}
+\/\*([^*]|\*+[^*/])*\*+\/ { /* comentario multilinea */ }
 [ \t]+      { /* ignorar */ }
 \n          { /* ignorar */ }
 
-/* Identificadores */
+    /* Identificadores */
 
 [a-zA-Z][a-zA-Z0-9]* { yylval.id = strdup(yytext); return ID; }
 
-/* Literal entero */
+    /* Literal entero */
 
-[0-9]+      { yylval.val = strtol(yytext, NULL, 10); return CONSTINT; }
+[0-9]+      {   long valor = strtol(yytext, NULL, 10);
+                if (valor > 2147483647L || valor < -2147483648L) {
+                    fprintf(stderr, "Error: entero fuera de rango: %s\n", yytext);
+                }
+                yylval.val = (int) valor;
+                return CONSTINT; }
 
-/* Literal real */
+    /* Literal real */
 
 [0-9]+\.[0-9]+  { yylval.fval = strtof(yytext, NULL); return CONSTFLOAT; }
 
+[0-9]+"."[0-9]*([eE][+-]?[0-9]+)?   { yylval.fval = strtof(yytext, NULL); return CONSTFLOAT; }
+[0-9]*"."[0-9]+([eE][+-]?[0-9]+)?   { yylval.fval = strtof(yytext, NULL); return CONSTFLOAT; }
+[0-9]+[eE][+-]?[0-9]+               { yylval.fval = strtof(yytext, NULL); return CONSTFLOAT; }
 
-/* Operadores */
+
+    /* Operadores */
 
 "||"        { return OR_OP; }
 "&&"        { return AND_OP; }
@@ -69,7 +76,8 @@
 ","         { return ','; }
 ";"         { return ';'; }
 
-/* Otro caracter */
+    /* Otro caracter */
+
 .           { lexical_errors++; fprintf(stderr, "Error léxico: símbolo '%s' no reconocido en la línea %d\n", yytext, yylineno); }
 
 %%
