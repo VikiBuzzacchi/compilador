@@ -52,5 +52,5 @@ Modifico y comento lineas del main para poder usar con los cambios realizados
 Consultar si es necesario chequear los limites en literales flotantes.
 Crear nuevos test que contemplen las nuevas reglas.
 Crear archivo para correr los test juntos
-
+Consultar si hacemos print de los tokens en el lexer (para comprobar que reconocemos los tokens correctos)
 

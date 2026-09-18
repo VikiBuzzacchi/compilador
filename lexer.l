@@ -14,8 +14,8 @@
 %%
     /* Palabras reservadas */
 
-"boolean"   { fprintf(BOOLEAN); return BOOLEAN; }
-"else"      { fprintf(ELSE); return ELSE; }
+"boolean"   { return BOOLEAN; }
+"else"      { return ELSE; }
 "false"     { return FALSE; }
 "if"        { return IF; }
 "int"       { return INT; }
