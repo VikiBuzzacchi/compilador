@@ -1,7 +1,13 @@
 void main(){
+    //Comentario
     int x; 
     int y; 
+    boolean m;
+    m = true;
     x = 1; 
     y = 1; 
     x = x + 3 * y; 
+    /* Comentario de
+    varias
+    lineas */
 }
