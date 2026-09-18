@@ -27,6 +27,15 @@ int syntax_errors = 0;
 %token ELSE IF WHILE FLOAT
 %token OR_OP AND_OP EQ_OP
 
+/* Precedencia de operadores */
+%left OR_OP
+%left AND_OP
+%left EQ_OP
+%left '<' '>'
+%left '+' '-'
+%left '*' '/' '%'
+%right UMINUS UNOT     /* precedencia - y ! */
+
 %start program
 
 %%
@@ -94,32 +103,20 @@ expr_list_ne: expr
 expr: ID
     | method_call
     | literal
-    | expr bin_op expr
-    | '-' expr
-    | '!' expr
+    | expr OR_OP  expr
+    | expr AND_OP expr
+    | expr EQ_OP  expr
+    | expr '<'    expr
+    | expr '>'    expr
+    | expr '+'    expr
+    | expr '-'    expr
+    | expr '*'    expr
+    | expr '/'    expr
+    | expr '%'    expr
+    | '-' expr    %prec UMINUS
+    | '!' expr    %prec UNOT
     | '(' expr ')'
     ;
-
-bin_op: arith_op
-      | rel_op
-      | cond_op
-      ;
-
-arith_op: '+'
-        | '-'
-        | '*'
-        | '/'
-        | '%'
-        ;
-
-rel_op: '<'
-      | '>'
-      | EQ_OP
-      ;
-
-cond_op: AND_OP
-       | OR_OP
-       ;
 
 literal: CONSTINT
        | CONSTFLOAT

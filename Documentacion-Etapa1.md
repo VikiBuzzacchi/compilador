@@ -17,3 +17,18 @@ Al compilar (`bison -d parser.y`), aparecen 36 conflictos shift/reduce por la am
 - Agregar `%left`/`%right`/`%prec` para desambiguar `expr`.
 - Resolver comentarios // y /* */. (`lexer.y`)
 - Modificar `lexer.y`.
+
+---
+
+## 18/09/2026 (Victoria)
+
+Se resolvió la precedencia y asociatividad de operadores en `parser.y`.
+
+### Problema
+La gramática definía `expr: expr bin_op expr` usando las reglas intermedias `bin_op`, `arith_op`, `rel_op` y `cond_op`. Bison no puede aplicar declaraciones de precedencia a no-terminales, solo a tokens. Esto generaba conflictos shift/reduce porque la gramática era ambigua para expresiones como `1 + 2 * 3`.
+
+### Solución aplicada
+1. **Se eliminaron** las reglas `bin_op`, `arith_op`, `rel_op` y `cond_op`.
+2. **Se reescribió** la regla `expr` con cada operador inline (`expr '+' expr`, `expr '*' expr`, etc.).
+3. **Se agregaron** declaraciones de precedencia y asociatividad antes de `%%`, en orden ascendente de prioridad.
+4. Los operadores unarios `-` y `!` usan `%prec UMINUS` / `%prec UNOT` para tener mayor prioridad que los binarios.
