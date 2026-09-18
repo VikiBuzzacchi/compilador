@@ -2,6 +2,7 @@
     // Analizador Léxico
 
     #include <stdio.h>
+    #include <stdlib.h>
     #include <string.h>
     #include "parser.tab.h"
 
@@ -12,25 +13,64 @@
 
 %%
 "main"      { return MAIN; }
-"int"       { return INT; }
-"bool"      { return BOOL; }
-"true"      { return TRUE; }
+
+/* Palabras reservadas */
+
+"boolean"   { return BOOLEAN; }
+"else"      { return ELSE; }
 "false"     { return FALSE; }
+"if"        { return IF; }
+"int"       { return INT; }
 "return"    { return RETURN; }
+"true"      { return TRUE; }
 "void"      { return VOID; }
+"while"     { return WHILE; }
+"float"     { return FLOAT; }
+
+/* Comentarios y espacios */
+
+"//".*    { /* ignorar */}
+"/*"[a-zA-Z][a-zA-Z0-9\n]*"*/"    { /* ignorar */}
+[ \t]+      { /* ignorar */ }
+\n          { /* ignorar */ }
+
+/* Identificadores */
+
 [a-zA-Z][a-zA-Z0-9]* { yylval.id = strdup(yytext); return ID; }
-[0-9]+      { yylval.val = atoi(yytext); return CONST; }
+
+/* Literal entero */
+
+[0-9]+      { yylval.val = strtol(yytext, NULL, 10); return CONSTINT; }
+
+/* Literal real */
+
+[0-9]+\.[0-9]+  { yylval.fval = strtof(yytext, NULL); return CONSTFLOAT; }
+
+
+/* Operadores */
+
+"||"        { return OR_OP; }
+"&&"        { return AND_OP; }
+"=="        { return EQ_OP; }
 "="         { return '='; }
 "+"         { return '+'; }
 "-"         { return '-'; }
 "*"         { return '*'; }
+"/"         { return '/'; }
+"%"         { return '%'; }
+"!"         { return '!'; }
+"<"         { return '<'; }
+">"         { return '>'; }
+
 "{"         { return '{'; }
 "}"         { return '}'; }
 "("         { return '('; }
 ")"         { return ')'; }
+","         { return ','; }
 ";"         { return ';'; }
-[ \t]+      { /* ignorar */ }
-\n          { /* ignorar */ }
+
+/* Otro caracter */
 .           { lexical_errors++; fprintf(stderr, "Error léxico: símbolo '%s' no reconocido en la línea %d\n", yytext, yylineno); }
+
 %%
 int yywrap() { return 1; }

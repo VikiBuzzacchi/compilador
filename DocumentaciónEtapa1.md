@@ -17,3 +17,12 @@ Al compilar (`bison -d parser.y`), aparecen 36 conflictos shift/reduce por la am
 - Agregar `%left`/`%right`/`%prec` para desambiguar `expr`.
 - Resolver comentarios // y /* */. (`lexer.y`)
 - Modificar `lexer.y`.
+
+
+## 17/09/2026 (Trini)
+
+Se modifica el archivo `lexer.y`.
+
+### Modificaciones
+
+Se agregan palabras reservadas y operadores nuevos.
