@@ -1,0 +1,8 @@
+Error léxico: símbolo '@' no reconocido en la línea 4
+Error léxico: símbolo '@' no reconocido en la línea 11
+Error sintáctico en la línea 11: syntax error, unexpected '!'
+
+Fallo en el análisis sintáctico.
+Errores léxicos: 2
+Errores sintácticos: 1
+Se encontraron 3 errores en total.

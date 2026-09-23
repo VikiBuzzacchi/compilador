@@ -7,5 +7,10 @@ lex.yy.c: lexer.l
 parser.tab.c: parser.y
 	bison -d parser.y
 
+test: compilador
+	./run_tests.sh
+
 clean:
 	rm -f compilador lex.yy.c parser.tab.c parser.tab.h
+
+.PHONY: test clean

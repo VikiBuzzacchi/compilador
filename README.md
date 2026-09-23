@@ -20,18 +20,34 @@ make clean  # limpia binarios
 ## Uso
 
 ```sh
-./compilador < test1.txt
+./compilador < tests/cases/test1.txt
 ```
 
 Si no hay errores léxicos/sintácticos, imprime el pseudo-assembly generado
 y el resultado de interpretar el AST (incluyendo cada `return`). Si hay
 errores, se listan con su número de línea y no se genera código.
 
+### Tests automáticos 
+
+```sh
+make test          # o ./run_tests.sh
+```
+
+Corre cada `tests/cases/*.txt` y compara la salida (stdout y stderr) con `tests/expected/<nombre>.expected`.
+Cada test pasa (`PASS`) o falla (`FAIL`).
+
 ### Archivos de prueba incluidos
 
-| `test1.txt` | Programa `void main` sin `return`, válido |
-| `test2.txt` | Programa `int main` con varios `return`, válido |
-| `test2error.txt` | Símbolos inválidos (`@`, `!`), para probar reporte de errores |
+| Archivo                 | Descripción   |
+| `tests/cases/test1.txt` | Programa `void main` sin `return`, válido |
+| `tests/cases/test2.txt` | Programa `int main` con varios `return`, válido |
+| `tests/cases/test3.txt` | Programa `int main` con constante entera negativa cercana al límite, válido |
+| `tests/cases/test2error.txt` | Símbolos inválidos (`@`, `!`), para probar reporte de errores |
+| `tests/cases/test4error.txt` | Entero fuera de rango (`99999999999`). Esperado: error léxico. |
+| `tests/cases/test5error.txt` | Comentario `/*` sin cerrar. Esperado: error léxico. |
+| `tests/cases/test6error.txt` | Literales mal formados (`1.2.3`, `3abc`). | 
+| `tests/cases/test7error.txt` | `;` faltante antes de un `if` con bloque. Esperado: 1 error |
+
 
 ## Estructura del proyecto
 

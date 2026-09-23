@@ -1,0 +1,5 @@
+void main() {
+    int y;
+    y = 3
+    if (y < 2) { y = 1; }
+}

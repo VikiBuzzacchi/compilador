@@ -1,0 +1,6 @@
+Error sintáctico en la línea 3: syntax error, unexpected CONSTFLOAT
+Error sintáctico en la línea 4: syntax error, unexpected ID
+
+Fallo en el análisis sintáctico.
+Errores sintácticos: 2
+Se encontraron 2 errores en total.
