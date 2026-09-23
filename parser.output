@@ -1,0 +1,1623 @@
+Grammar
+
+    0 $accept: program $end
+
+    1 program: var_decl_list method_decl_list
+    2        | method_decl_list
+
+    3 var_decl_list: var_decl_list var_decl
+    4              | var_decl
+
+    5 var_decl: type id_list ';'
+
+    6 id_list: ID
+    7        | ID ',' id_list
+
+    8 method_decl_list: method_decl_list method_decl
+    9                 | method_decl
+
+   10 method_decl: type ID '(' param_list ')' block
+   11            | VOID ID '(' param_list ')' block
+
+   12 param_list: param_list_ne
+   13           | ε
+
+   14 param_list_ne: type ID
+   15              | type ID ',' param_list_ne
+
+   16 block: '{' var_decl_list statement_list '}'
+
+   17 statement_list: statement statement_list
+   18               | ε
+
+   19 type: INT
+   20     | BOOLEAN
+   21     | FLOAT
+
+   22 statement: ID '=' expr ';'
+   23          | method_call ';'
+   24          | IF '(' expr ')' block
+   25          | IF '(' expr ')' block ELSE block
+   26          | WHILE '(' expr ')' block
+   27          | RETURN expr ';'
+   28          | RETURN ';'
+   29          | ';'
+   30          | block
+   31          | error ';'
+
+   32 method_call: ID '(' expr_list ')'
+
+   33 expr_list: expr_list_ne
+   34          | ε
+
+   35 expr_list_ne: expr
+   36             | expr ',' expr_list_ne
+
+   37 expr: ID
+   38     | method_call
+   39     | literal
+   40     | expr OR_OP expr
+   41     | expr AND_OP expr
+   42     | expr EQ_OP expr
+   43     | expr '<' expr
+   44     | expr '>' expr
+   45     | expr '+' expr
+   46     | expr '-' expr
+   47     | expr '*' expr
+   48     | expr '/' expr
+   49     | expr '%' expr
+   50     | '-' expr
+   51     | '!' expr
+   52     | '(' expr ')'
+
+   53 literal: CONSTINT
+   54        | CONSTFLOAT
+   55        | bool_literal
+
+   56 bool_literal: TRUE
+   57             | FALSE
+
+
+Terminals, with rules where they appear
+
+    $end (0) 0
+    '!' (33) 51
+    '%' (37) 49
+    '(' (40) 10 11 24 25 26 32 52
+    ')' (41) 10 11 24 25 26 32 52
+    '*' (42) 47
+    '+' (43) 45
+    ',' (44) 7 15 36
+    '-' (45) 46 50
+    '/' (47) 48
+    ';' (59) 5 22 23 27 28 29 31
+    '<' (60) 43
+    '=' (61) 22
+    '>' (62) 44
+    '{' (123) 16
+    '}' (125) 16
+    error (256) 31
+    INT (258) 19
+    BOOLEAN (259) 20
+    TRUE (260) 56
+    FALSE (261) 57
+    ID <id> (262) 6 7 10 11 14 15 22 32 37
+    CONSTINT <val> (263) 53
+    CONSTFLOAT <fval> (264) 54
+    RETURN (265) 27 28
+    VOID (266) 11
+    ELSE (267) 25
+    IF (268) 24 25
+    WHILE (269) 26
+    FLOAT (270) 21
+    OR_OP (271) 40
+    AND_OP (272) 41
+    EQ_OP (273) 42
+    UMINUS (274)
+    UNOT (275)
+
+
+Nonterminals, with rules where they appear
+
+    $accept (36)
+        on left: 0
+    program (37)
+        on left: 1 2
+        on right: 0
+    var_decl_list (38)
+        on left: 3 4
+        on right: 1 3 16
+    var_decl (39)
+        on left: 5
+        on right: 3 4
+    id_list (40)
+        on left: 6 7
+        on right: 5 7
+    method_decl_list (41)
+        on left: 8 9
+        on right: 1 2 8
+    method_decl (42)
+        on left: 10 11
+        on right: 8 9
+    param_list (43)
+        on left: 12 13
+        on right: 10 11
+    param_list_ne (44)
+        on left: 14 15
+        on right: 12 15
+    block (45)
+        on left: 16
+        on right: 10 11 24 25 26 30
+    statement_list (46)
+        on left: 17 18
+        on right: 16 17
+    type (47)
+        on left: 19 20 21
+        on right: 5 10 14 15
+    statement (48)
+        on left: 22 23 24 25 26 27 28 29 30 31
+        on right: 17
+    method_call (49)
+        on left: 32
+        on right: 23 38
+    expr_list (50)
+        on left: 33 34
+        on right: 32
+    expr_list_ne (51)
+        on left: 35 36
+        on right: 33 36
+    expr (52)
+        on left: 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52
+        on right: 22 24 25 26 27 35 36 40 41 42 43 44 45 46 47 48 49 50 51 52
+    literal (53)
+        on left: 53 54 55
+        on right: 39
+    bool_literal (54)
+        on left: 56 57
+        on right: 55
+
+
+State 0
+
+    0 $accept: • program $end
+
+    INT      shift, and go to state 1
+    BOOLEAN  shift, and go to state 2
+    VOID     shift, and go to state 3
+    FLOAT    shift, and go to state 4
+
+    program           go to state 5
+    var_decl_list     go to state 6
+    var_decl          go to state 7
+    method_decl_list  go to state 8
+    method_decl       go to state 9
+    type              go to state 10
+
+
+State 1
+
+   19 type: INT •
+
+    $default  reduce using rule 19 (type)
+
+
+State 2
+
+   20 type: BOOLEAN •
+
+    $default  reduce using rule 20 (type)
+
+
+State 3
+
+   11 method_decl: VOID • ID '(' param_list ')' block
+
+    ID  shift, and go to state 11
+
+
+State 4
+
+   21 type: FLOAT •
+
+    $default  reduce using rule 21 (type)
+
+
+State 5
+
+    0 $accept: program • $end
+
+    $end  shift, and go to state 12
+
+
+State 6
+
+    1 program: var_decl_list • method_decl_list
+    3 var_decl_list: var_decl_list • var_decl
+
+    INT      shift, and go to state 1
+    BOOLEAN  shift, and go to state 2
+    VOID     shift, and go to state 3
+    FLOAT    shift, and go to state 4
+
+    var_decl          go to state 13
+    method_decl_list  go to state 14
+    method_decl       go to state 9
+    type              go to state 10
+
+
+State 7
+
+    4 var_decl_list: var_decl •
+
+    $default  reduce using rule 4 (var_decl_list)
+
+
+State 8
+
+    2 program: method_decl_list •
+    8 method_decl_list: method_decl_list • method_decl
+
+    INT      shift, and go to state 1
+    BOOLEAN  shift, and go to state 2
+    VOID     shift, and go to state 3
+    FLOAT    shift, and go to state 4
+
+    $default  reduce using rule 2 (program)
+
+    method_decl  go to state 15
+    type         go to state 16
+
+
+State 9
+
+    9 method_decl_list: method_decl •
+
+    $default  reduce using rule 9 (method_decl_list)
+
+
+State 10
+
+    5 var_decl: type • id_list ';'
+   10 method_decl: type • ID '(' param_list ')' block
+
+    ID  shift, and go to state 17
+
+    id_list  go to state 18
+
+
+State 11
+
+   11 method_decl: VOID ID • '(' param_list ')' block
+
+    '('  shift, and go to state 19
+
+
+State 12
+
+    0 $accept: program $end •
+
+    $default  accept
+
+
+State 13
+
+    3 var_decl_list: var_decl_list var_decl •
+
+    $default  reduce using rule 3 (var_decl_list)
+
+
+State 14
+
+    1 program: var_decl_list method_decl_list •
+    8 method_decl_list: method_decl_list • method_decl
+
+    INT      shift, and go to state 1
+    BOOLEAN  shift, and go to state 2
+    VOID     shift, and go to state 3
+    FLOAT    shift, and go to state 4
+
+    $default  reduce using rule 1 (program)
+
+    method_decl  go to state 15
+    type         go to state 16
+
+
+State 15
+
+    8 method_decl_list: method_decl_list method_decl •
+
+    $default  reduce using rule 8 (method_decl_list)
+
+
+State 16
+
+   10 method_decl: type • ID '(' param_list ')' block
+
+    ID  shift, and go to state 20
+
+
+State 17
+
+    6 id_list: ID •
+    7        | ID • ',' id_list
+   10 method_decl: type ID • '(' param_list ')' block
+
+    ','  shift, and go to state 21
+    '('  shift, and go to state 22
+
+    $default  reduce using rule 6 (id_list)
+
+
+State 18
+
+    5 var_decl: type id_list • ';'
+
+    ';'  shift, and go to state 23
+
+
+State 19
+
+   11 method_decl: VOID ID '(' • param_list ')' block
+
+    INT      shift, and go to state 1
+    BOOLEAN  shift, and go to state 2
+    FLOAT    shift, and go to state 4
+
+    $default  reduce using rule 13 (param_list)
+
+    param_list     go to state 24
+    param_list_ne  go to state 25
+    type           go to state 26
+
+
+State 20
+
+   10 method_decl: type ID • '(' param_list ')' block
+
+    '('  shift, and go to state 22
+
+
+State 21
+
+    7 id_list: ID ',' • id_list
+
+    ID  shift, and go to state 27
+
+    id_list  go to state 28
+
+
+State 22
+
+   10 method_decl: type ID '(' • param_list ')' block
+
+    INT      shift, and go to state 1
+    BOOLEAN  shift, and go to state 2
+    FLOAT    shift, and go to state 4
+
+    $default  reduce using rule 13 (param_list)
+
+    param_list     go to state 29
+    param_list_ne  go to state 25
+    type           go to state 26
+
+
+State 23
+
+    5 var_decl: type id_list ';' •
+
+    $default  reduce using rule 5 (var_decl)
+
+
+State 24
+
+   11 method_decl: VOID ID '(' param_list • ')' block
+
+    ')'  shift, and go to state 30
+
+
+State 25
+
+   12 param_list: param_list_ne •
+
+    $default  reduce using rule 12 (param_list)
+
+
+State 26
+
+   14 param_list_ne: type • ID
+   15              | type • ID ',' param_list_ne
+
+    ID  shift, and go to state 31
+
+
+State 27
+
+    6 id_list: ID •
+    7        | ID • ',' id_list
+
+    ','  shift, and go to state 21
+
+    $default  reduce using rule 6 (id_list)
+
+
+State 28
+
+    7 id_list: ID ',' id_list •
+
+    $default  reduce using rule 7 (id_list)
+
+
+State 29
+
+   10 method_decl: type ID '(' param_list • ')' block
+
+    ')'  shift, and go to state 32
+
+
+State 30
+
+   11 method_decl: VOID ID '(' param_list ')' • block
+
+    '{'  shift, and go to state 33
+
+    block  go to state 34
+
+
+State 31
+
+   14 param_list_ne: type ID •
+   15              | type ID • ',' param_list_ne
+
+    ','  shift, and go to state 35
+
+    $default  reduce using rule 14 (param_list_ne)
+
+
+State 32
+
+   10 method_decl: type ID '(' param_list ')' • block
+
+    '{'  shift, and go to state 33
+
+    block  go to state 36
+
+
+State 33
+
+   16 block: '{' • var_decl_list statement_list '}'
+
+    INT      shift, and go to state 1
+    BOOLEAN  shift, and go to state 2
+    FLOAT    shift, and go to state 4
+
+    var_decl_list  go to state 37
+    var_decl       go to state 7
+    type           go to state 38
+
+
+State 34
+
+   11 method_decl: VOID ID '(' param_list ')' block •
+
+    $default  reduce using rule 11 (method_decl)
+
+
+State 35
+
+   15 param_list_ne: type ID ',' • param_list_ne
+
+    INT      shift, and go to state 1
+    BOOLEAN  shift, and go to state 2
+    FLOAT    shift, and go to state 4
+
+    param_list_ne  go to state 39
+    type           go to state 26
+
+
+State 36
+
+   10 method_decl: type ID '(' param_list ')' block •
+
+    $default  reduce using rule 10 (method_decl)
+
+
+State 37
+
+    3 var_decl_list: var_decl_list • var_decl
+   16 block: '{' var_decl_list • statement_list '}'
+
+    error    shift, and go to state 40
+    INT      shift, and go to state 1
+    BOOLEAN  shift, and go to state 2
+    ID       shift, and go to state 41
+    RETURN   shift, and go to state 42
+    IF       shift, and go to state 43
+    WHILE    shift, and go to state 44
+    FLOAT    shift, and go to state 4
+    ';'      shift, and go to state 45
+    '{'      shift, and go to state 33
+
+    '}'  reduce using rule 18 (statement_list)
+
+    var_decl        go to state 13
+    block           go to state 46
+    statement_list  go to state 47
+    type            go to state 38
+    statement       go to state 48
+    method_call     go to state 49
+
+
+State 38
+
+    5 var_decl: type • id_list ';'
+
+    ID  shift, and go to state 27
+
+    id_list  go to state 18
+
+
+State 39
+
+   15 param_list_ne: type ID ',' param_list_ne •
+
+    $default  reduce using rule 15 (param_list_ne)
+
+
+State 40
+
+   31 statement: error • ';'
+
+    ';'  shift, and go to state 50
+
+
+State 41
+
+   22 statement: ID • '=' expr ';'
+   32 method_call: ID • '(' expr_list ')'
+
+    '('  shift, and go to state 51
+    '='  shift, and go to state 52
+
+
+State 42
+
+   27 statement: RETURN • expr ';'
+   28          | RETURN • ';'
+
+    TRUE        shift, and go to state 53
+    FALSE       shift, and go to state 54
+    ID          shift, and go to state 55
+    CONSTINT    shift, and go to state 56
+    CONSTFLOAT  shift, and go to state 57
+    '-'         shift, and go to state 58
+    ';'         shift, and go to state 59
+    '('         shift, and go to state 60
+    '!'         shift, and go to state 61
+
+    method_call   go to state 62
+    expr          go to state 63
+    literal       go to state 64
+    bool_literal  go to state 65
+
+
+State 43
+
+   24 statement: IF • '(' expr ')' block
+   25          | IF • '(' expr ')' block ELSE block
+
+    '('  shift, and go to state 66
+
+
+State 44
+
+   26 statement: WHILE • '(' expr ')' block
+
+    '('  shift, and go to state 67
+
+
+State 45
+
+   29 statement: ';' •
+
+    $default  reduce using rule 29 (statement)
+
+
+State 46
+
+   30 statement: block •
+
+    $default  reduce using rule 30 (statement)
+
+
+State 47
+
+   16 block: '{' var_decl_list statement_list • '}'
+
+    '}'  shift, and go to state 68
+
+
+State 48
+
+   17 statement_list: statement • statement_list
+
+    error   shift, and go to state 40
+    ID      shift, and go to state 41
+    RETURN  shift, and go to state 42
+    IF      shift, and go to state 43
+    WHILE   shift, and go to state 44
+    ';'     shift, and go to state 45
+    '{'     shift, and go to state 33
+
+    '}'  reduce using rule 18 (statement_list)
+
+    block           go to state 46
+    statement_list  go to state 69
+    statement       go to state 48
+    method_call     go to state 49
+
+
+State 49
+
+   23 statement: method_call • ';'
+
+    ';'  shift, and go to state 70
+
+
+State 50
+
+   31 statement: error ';' •
+
+    $default  reduce using rule 31 (statement)
+
+
+State 51
+
+   32 method_call: ID '(' • expr_list ')'
+
+    TRUE        shift, and go to state 53
+    FALSE       shift, and go to state 54
+    ID          shift, and go to state 55
+    CONSTINT    shift, and go to state 56
+    CONSTFLOAT  shift, and go to state 57
+    '-'         shift, and go to state 58
+    '('         shift, and go to state 60
+    '!'         shift, and go to state 61
+
+    $default  reduce using rule 34 (expr_list)
+
+    method_call   go to state 62
+    expr_list     go to state 71
+    expr_list_ne  go to state 72
+    expr          go to state 73
+    literal       go to state 64
+    bool_literal  go to state 65
+
+
+State 52
+
+   22 statement: ID '=' • expr ';'
+
+    TRUE        shift, and go to state 53
+    FALSE       shift, and go to state 54
+    ID          shift, and go to state 55
+    CONSTINT    shift, and go to state 56
+    CONSTFLOAT  shift, and go to state 57
+    '-'         shift, and go to state 58
+    '('         shift, and go to state 60
+    '!'         shift, and go to state 61
+
+    method_call   go to state 62
+    expr          go to state 74
+    literal       go to state 64
+    bool_literal  go to state 65
+
+
+State 53
+
+   56 bool_literal: TRUE •
+
+    $default  reduce using rule 56 (bool_literal)
+
+
+State 54
+
+   57 bool_literal: FALSE •
+
+    $default  reduce using rule 57 (bool_literal)
+
+
+State 55
+
+   32 method_call: ID • '(' expr_list ')'
+   37 expr: ID •
+
+    '('  shift, and go to state 51
+
+    $default  reduce using rule 37 (expr)
+
+
+State 56
+
+   53 literal: CONSTINT •
+
+    $default  reduce using rule 53 (literal)
+
+
+State 57
+
+   54 literal: CONSTFLOAT •
+
+    $default  reduce using rule 54 (literal)
+
+
+State 58
+
+   50 expr: '-' • expr
+
+    TRUE        shift, and go to state 53
+    FALSE       shift, and go to state 54
+    ID          shift, and go to state 55
+    CONSTINT    shift, and go to state 56
+    CONSTFLOAT  shift, and go to state 57
+    '-'         shift, and go to state 58
+    '('         shift, and go to state 60
+    '!'         shift, and go to state 61
+
+    method_call   go to state 62
+    expr          go to state 75
+    literal       go to state 64
+    bool_literal  go to state 65
+
+
+State 59
+
+   28 statement: RETURN ';' •
+
+    $default  reduce using rule 28 (statement)
+
+
+State 60
+
+   52 expr: '(' • expr ')'
+
+    TRUE        shift, and go to state 53
+    FALSE       shift, and go to state 54
+    ID          shift, and go to state 55
+    CONSTINT    shift, and go to state 56
+    CONSTFLOAT  shift, and go to state 57
+    '-'         shift, and go to state 58
+    '('         shift, and go to state 60
+    '!'         shift, and go to state 61
+
+    method_call   go to state 62
+    expr          go to state 76
+    literal       go to state 64
+    bool_literal  go to state 65
+
+
+State 61
+
+   51 expr: '!' • expr
+
+    TRUE        shift, and go to state 53
+    FALSE       shift, and go to state 54
+    ID          shift, and go to state 55
+    CONSTINT    shift, and go to state 56
+    CONSTFLOAT  shift, and go to state 57
+    '-'         shift, and go to state 58
+    '('         shift, and go to state 60
+    '!'         shift, and go to state 61
+
+    method_call   go to state 62
+    expr          go to state 77
+    literal       go to state 64
+    bool_literal  go to state 65
+
+
+State 62
+
+   38 expr: method_call •
+
+    $default  reduce using rule 38 (expr)
+
+
+State 63
+
+   27 statement: RETURN expr • ';'
+   40 expr: expr • OR_OP expr
+   41     | expr • AND_OP expr
+   42     | expr • EQ_OP expr
+   43     | expr • '<' expr
+   44     | expr • '>' expr
+   45     | expr • '+' expr
+   46     | expr • '-' expr
+   47     | expr • '*' expr
+   48     | expr • '/' expr
+   49     | expr • '%' expr
+
+    OR_OP   shift, and go to state 78
+    AND_OP  shift, and go to state 79
+    EQ_OP   shift, and go to state 80
+    '<'     shift, and go to state 81
+    '>'     shift, and go to state 82
+    '+'     shift, and go to state 83
+    '-'     shift, and go to state 84
+    '*'     shift, and go to state 85
+    '/'     shift, and go to state 86
+    '%'     shift, and go to state 87
+    ';'     shift, and go to state 88
+
+
+State 64
+
+   39 expr: literal •
+
+    $default  reduce using rule 39 (expr)
+
+
+State 65
+
+   55 literal: bool_literal •
+
+    $default  reduce using rule 55 (literal)
+
+
+State 66
+
+   24 statement: IF '(' • expr ')' block
+   25          | IF '(' • expr ')' block ELSE block
+
+    TRUE        shift, and go to state 53
+    FALSE       shift, and go to state 54
+    ID          shift, and go to state 55
+    CONSTINT    shift, and go to state 56
+    CONSTFLOAT  shift, and go to state 57
+    '-'         shift, and go to state 58
+    '('         shift, and go to state 60
+    '!'         shift, and go to state 61
+
+    method_call   go to state 62
+    expr          go to state 89
+    literal       go to state 64
+    bool_literal  go to state 65
+
+
+State 67
+
+   26 statement: WHILE '(' • expr ')' block
+
+    TRUE        shift, and go to state 53
+    FALSE       shift, and go to state 54
+    ID          shift, and go to state 55
+    CONSTINT    shift, and go to state 56
+    CONSTFLOAT  shift, and go to state 57
+    '-'         shift, and go to state 58
+    '('         shift, and go to state 60
+    '!'         shift, and go to state 61
+
+    method_call   go to state 62
+    expr          go to state 90
+    literal       go to state 64
+    bool_literal  go to state 65
+
+
+State 68
+
+   16 block: '{' var_decl_list statement_list '}' •
+
+    $default  reduce using rule 16 (block)
+
+
+State 69
+
+   17 statement_list: statement statement_list •
+
+    $default  reduce using rule 17 (statement_list)
+
+
+State 70
+
+   23 statement: method_call ';' •
+
+    $default  reduce using rule 23 (statement)
+
+
+State 71
+
+   32 method_call: ID '(' expr_list • ')'
+
+    ')'  shift, and go to state 91
+
+
+State 72
+
+   33 expr_list: expr_list_ne •
+
+    $default  reduce using rule 33 (expr_list)
+
+
+State 73
+
+   35 expr_list_ne: expr •
+   36             | expr • ',' expr_list_ne
+   40 expr: expr • OR_OP expr
+   41     | expr • AND_OP expr
+   42     | expr • EQ_OP expr
+   43     | expr • '<' expr
+   44     | expr • '>' expr
+   45     | expr • '+' expr
+   46     | expr • '-' expr
+   47     | expr • '*' expr
+   48     | expr • '/' expr
+   49     | expr • '%' expr
+
+    OR_OP   shift, and go to state 78
+    AND_OP  shift, and go to state 79
+    EQ_OP   shift, and go to state 80
+    '<'     shift, and go to state 81
+    '>'     shift, and go to state 82
+    '+'     shift, and go to state 83
+    '-'     shift, and go to state 84
+    '*'     shift, and go to state 85
+    '/'     shift, and go to state 86
+    '%'     shift, and go to state 87
+    ','     shift, and go to state 92
+
+    $default  reduce using rule 35 (expr_list_ne)
+
+
+State 74
+
+   22 statement: ID '=' expr • ';'
+   40 expr: expr • OR_OP expr
+   41     | expr • AND_OP expr
+   42     | expr • EQ_OP expr
+   43     | expr • '<' expr
+   44     | expr • '>' expr
+   45     | expr • '+' expr
+   46     | expr • '-' expr
+   47     | expr • '*' expr
+   48     | expr • '/' expr
+   49     | expr • '%' expr
+
+    OR_OP   shift, and go to state 78
+    AND_OP  shift, and go to state 79
+    EQ_OP   shift, and go to state 80
+    '<'     shift, and go to state 81
+    '>'     shift, and go to state 82
+    '+'     shift, and go to state 83
+    '-'     shift, and go to state 84
+    '*'     shift, and go to state 85
+    '/'     shift, and go to state 86
+    '%'     shift, and go to state 87
+    ';'     shift, and go to state 93
+
+
+State 75
+
+   40 expr: expr • OR_OP expr
+   41     | expr • AND_OP expr
+   42     | expr • EQ_OP expr
+   43     | expr • '<' expr
+   44     | expr • '>' expr
+   45     | expr • '+' expr
+   46     | expr • '-' expr
+   47     | expr • '*' expr
+   48     | expr • '/' expr
+   49     | expr • '%' expr
+   50     | '-' expr •
+
+    $default  reduce using rule 50 (expr)
+
+
+State 76
+
+   40 expr: expr • OR_OP expr
+   41     | expr • AND_OP expr
+   42     | expr • EQ_OP expr
+   43     | expr • '<' expr
+   44     | expr • '>' expr
+   45     | expr • '+' expr
+   46     | expr • '-' expr
+   47     | expr • '*' expr
+   48     | expr • '/' expr
+   49     | expr • '%' expr
+   52     | '(' expr • ')'
+
+    OR_OP   shift, and go to state 78
+    AND_OP  shift, and go to state 79
+    EQ_OP   shift, and go to state 80
+    '<'     shift, and go to state 81
+    '>'     shift, and go to state 82
+    '+'     shift, and go to state 83
+    '-'     shift, and go to state 84
+    '*'     shift, and go to state 85
+    '/'     shift, and go to state 86
+    '%'     shift, and go to state 87
+    ')'     shift, and go to state 94
+
+
+State 77
+
+   40 expr: expr • OR_OP expr
+   41     | expr • AND_OP expr
+   42     | expr • EQ_OP expr
+   43     | expr • '<' expr
+   44     | expr • '>' expr
+   45     | expr • '+' expr
+   46     | expr • '-' expr
+   47     | expr • '*' expr
+   48     | expr • '/' expr
+   49     | expr • '%' expr
+   51     | '!' expr •
+
+    $default  reduce using rule 51 (expr)
+
+
+State 78
+
+   40 expr: expr OR_OP • expr
+
+    TRUE        shift, and go to state 53
+    FALSE       shift, and go to state 54
+    ID          shift, and go to state 55
+    CONSTINT    shift, and go to state 56
+    CONSTFLOAT  shift, and go to state 57
+    '-'         shift, and go to state 58
+    '('         shift, and go to state 60
+    '!'         shift, and go to state 61
+
+    method_call   go to state 62
+    expr          go to state 95
+    literal       go to state 64
+    bool_literal  go to state 65
+
+
+State 79
+
+   41 expr: expr AND_OP • expr
+
+    TRUE        shift, and go to state 53
+    FALSE       shift, and go to state 54
+    ID          shift, and go to state 55
+    CONSTINT    shift, and go to state 56
+    CONSTFLOAT  shift, and go to state 57
+    '-'         shift, and go to state 58
+    '('         shift, and go to state 60
+    '!'         shift, and go to state 61
+
+    method_call   go to state 62
+    expr          go to state 96
+    literal       go to state 64
+    bool_literal  go to state 65
+
+
+State 80
+
+   42 expr: expr EQ_OP • expr
+
+    TRUE        shift, and go to state 53
+    FALSE       shift, and go to state 54
+    ID          shift, and go to state 55
+    CONSTINT    shift, and go to state 56
+    CONSTFLOAT  shift, and go to state 57
+    '-'         shift, and go to state 58
+    '('         shift, and go to state 60
+    '!'         shift, and go to state 61
+
+    method_call   go to state 62
+    expr          go to state 97
+    literal       go to state 64
+    bool_literal  go to state 65
+
+
+State 81
+
+   43 expr: expr '<' • expr
+
+    TRUE        shift, and go to state 53
+    FALSE       shift, and go to state 54
+    ID          shift, and go to state 55
+    CONSTINT    shift, and go to state 56
+    CONSTFLOAT  shift, and go to state 57
+    '-'         shift, and go to state 58
+    '('         shift, and go to state 60
+    '!'         shift, and go to state 61
+
+    method_call   go to state 62
+    expr          go to state 98
+    literal       go to state 64
+    bool_literal  go to state 65
+
+
+State 82
+
+   44 expr: expr '>' • expr
+
+    TRUE        shift, and go to state 53
+    FALSE       shift, and go to state 54
+    ID          shift, and go to state 55
+    CONSTINT    shift, and go to state 56
+    CONSTFLOAT  shift, and go to state 57
+    '-'         shift, and go to state 58
+    '('         shift, and go to state 60
+    '!'         shift, and go to state 61
+
+    method_call   go to state 62
+    expr          go to state 99
+    literal       go to state 64
+    bool_literal  go to state 65
+
+
+State 83
+
+   45 expr: expr '+' • expr
+
+    TRUE        shift, and go to state 53
+    FALSE       shift, and go to state 54
+    ID          shift, and go to state 55
+    CONSTINT    shift, and go to state 56
+    CONSTFLOAT  shift, and go to state 57
+    '-'         shift, and go to state 58
+    '('         shift, and go to state 60
+    '!'         shift, and go to state 61
+
+    method_call   go to state 62
+    expr          go to state 100
+    literal       go to state 64
+    bool_literal  go to state 65
+
+
+State 84
+
+   46 expr: expr '-' • expr
+
+    TRUE        shift, and go to state 53
+    FALSE       shift, and go to state 54
+    ID          shift, and go to state 55
+    CONSTINT    shift, and go to state 56
+    CONSTFLOAT  shift, and go to state 57
+    '-'         shift, and go to state 58
+    '('         shift, and go to state 60
+    '!'         shift, and go to state 61
+
+    method_call   go to state 62
+    expr          go to state 101
+    literal       go to state 64
+    bool_literal  go to state 65
+
+
+State 85
+
+   47 expr: expr '*' • expr
+
+    TRUE        shift, and go to state 53
+    FALSE       shift, and go to state 54
+    ID          shift, and go to state 55
+    CONSTINT    shift, and go to state 56
+    CONSTFLOAT  shift, and go to state 57
+    '-'         shift, and go to state 58
+    '('         shift, and go to state 60
+    '!'         shift, and go to state 61
+
+    method_call   go to state 62
+    expr          go to state 102
+    literal       go to state 64
+    bool_literal  go to state 65
+
+
+State 86
+
+   48 expr: expr '/' • expr
+
+    TRUE        shift, and go to state 53
+    FALSE       shift, and go to state 54
+    ID          shift, and go to state 55
+    CONSTINT    shift, and go to state 56
+    CONSTFLOAT  shift, and go to state 57
+    '-'         shift, and go to state 58
+    '('         shift, and go to state 60
+    '!'         shift, and go to state 61
+
+    method_call   go to state 62
+    expr          go to state 103
+    literal       go to state 64
+    bool_literal  go to state 65
+
+
+State 87
+
+   49 expr: expr '%' • expr
+
+    TRUE        shift, and go to state 53
+    FALSE       shift, and go to state 54
+    ID          shift, and go to state 55
+    CONSTINT    shift, and go to state 56
+    CONSTFLOAT  shift, and go to state 57
+    '-'         shift, and go to state 58
+    '('         shift, and go to state 60
+    '!'         shift, and go to state 61
+
+    method_call   go to state 62
+    expr          go to state 104
+    literal       go to state 64
+    bool_literal  go to state 65
+
+
+State 88
+
+   27 statement: RETURN expr ';' •
+
+    $default  reduce using rule 27 (statement)
+
+
+State 89
+
+   24 statement: IF '(' expr • ')' block
+   25          | IF '(' expr • ')' block ELSE block
+   40 expr: expr • OR_OP expr
+   41     | expr • AND_OP expr
+   42     | expr • EQ_OP expr
+   43     | expr • '<' expr
+   44     | expr • '>' expr
+   45     | expr • '+' expr
+   46     | expr • '-' expr
+   47     | expr • '*' expr
+   48     | expr • '/' expr
+   49     | expr • '%' expr
+
+    OR_OP   shift, and go to state 78
+    AND_OP  shift, and go to state 79
+    EQ_OP   shift, and go to state 80
+    '<'     shift, and go to state 81
+    '>'     shift, and go to state 82
+    '+'     shift, and go to state 83
+    '-'     shift, and go to state 84
+    '*'     shift, and go to state 85
+    '/'     shift, and go to state 86
+    '%'     shift, and go to state 87
+    ')'     shift, and go to state 105
+
+
+State 90
+
+   26 statement: WHILE '(' expr • ')' block
+   40 expr: expr • OR_OP expr
+   41     | expr • AND_OP expr
+   42     | expr • EQ_OP expr
+   43     | expr • '<' expr
+   44     | expr • '>' expr
+   45     | expr • '+' expr
+   46     | expr • '-' expr
+   47     | expr • '*' expr
+   48     | expr • '/' expr
+   49     | expr • '%' expr
+
+    OR_OP   shift, and go to state 78
+    AND_OP  shift, and go to state 79
+    EQ_OP   shift, and go to state 80
+    '<'     shift, and go to state 81
+    '>'     shift, and go to state 82
+    '+'     shift, and go to state 83
+    '-'     shift, and go to state 84
+    '*'     shift, and go to state 85
+    '/'     shift, and go to state 86
+    '%'     shift, and go to state 87
+    ')'     shift, and go to state 106
+
+
+State 91
+
+   32 method_call: ID '(' expr_list ')' •
+
+    $default  reduce using rule 32 (method_call)
+
+
+State 92
+
+   36 expr_list_ne: expr ',' • expr_list_ne
+
+    TRUE        shift, and go to state 53
+    FALSE       shift, and go to state 54
+    ID          shift, and go to state 55
+    CONSTINT    shift, and go to state 56
+    CONSTFLOAT  shift, and go to state 57
+    '-'         shift, and go to state 58
+    '('         shift, and go to state 60
+    '!'         shift, and go to state 61
+
+    method_call   go to state 62
+    expr_list_ne  go to state 107
+    expr          go to state 73
+    literal       go to state 64
+    bool_literal  go to state 65
+
+
+State 93
+
+   22 statement: ID '=' expr ';' •
+
+    $default  reduce using rule 22 (statement)
+
+
+State 94
+
+   52 expr: '(' expr ')' •
+
+    $default  reduce using rule 52 (expr)
+
+
+State 95
+
+   40 expr: expr • OR_OP expr
+   40     | expr OR_OP expr •
+   41     | expr • AND_OP expr
+   42     | expr • EQ_OP expr
+   43     | expr • '<' expr
+   44     | expr • '>' expr
+   45     | expr • '+' expr
+   46     | expr • '-' expr
+   47     | expr • '*' expr
+   48     | expr • '/' expr
+   49     | expr • '%' expr
+
+    AND_OP  shift, and go to state 79
+    EQ_OP   shift, and go to state 80
+    '<'     shift, and go to state 81
+    '>'     shift, and go to state 82
+    '+'     shift, and go to state 83
+    '-'     shift, and go to state 84
+    '*'     shift, and go to state 85
+    '/'     shift, and go to state 86
+    '%'     shift, and go to state 87
+
+    $default  reduce using rule 40 (expr)
+
+
+State 96
+
+   40 expr: expr • OR_OP expr
+   41     | expr • AND_OP expr
+   41     | expr AND_OP expr •
+   42     | expr • EQ_OP expr
+   43     | expr • '<' expr
+   44     | expr • '>' expr
+   45     | expr • '+' expr
+   46     | expr • '-' expr
+   47     | expr • '*' expr
+   48     | expr • '/' expr
+   49     | expr • '%' expr
+
+    EQ_OP  shift, and go to state 80
+    '<'    shift, and go to state 81
+    '>'    shift, and go to state 82
+    '+'    shift, and go to state 83
+    '-'    shift, and go to state 84
+    '*'    shift, and go to state 85
+    '/'    shift, and go to state 86
+    '%'    shift, and go to state 87
+
+    $default  reduce using rule 41 (expr)
+
+
+State 97
+
+   40 expr: expr • OR_OP expr
+   41     | expr • AND_OP expr
+   42     | expr • EQ_OP expr
+   42     | expr EQ_OP expr •
+   43     | expr • '<' expr
+   44     | expr • '>' expr
+   45     | expr • '+' expr
+   46     | expr • '-' expr
+   47     | expr • '*' expr
+   48     | expr • '/' expr
+   49     | expr • '%' expr
+
+    '<'  shift, and go to state 81
+    '>'  shift, and go to state 82
+    '+'  shift, and go to state 83
+    '-'  shift, and go to state 84
+    '*'  shift, and go to state 85
+    '/'  shift, and go to state 86
+    '%'  shift, and go to state 87
+
+    $default  reduce using rule 42 (expr)
+
+
+State 98
+
+   40 expr: expr • OR_OP expr
+   41     | expr • AND_OP expr
+   42     | expr • EQ_OP expr
+   43     | expr • '<' expr
+   43     | expr '<' expr •
+   44     | expr • '>' expr
+   45     | expr • '+' expr
+   46     | expr • '-' expr
+   47     | expr • '*' expr
+   48     | expr • '/' expr
+   49     | expr • '%' expr
+
+    '+'  shift, and go to state 83
+    '-'  shift, and go to state 84
+    '*'  shift, and go to state 85
+    '/'  shift, and go to state 86
+    '%'  shift, and go to state 87
+
+    $default  reduce using rule 43 (expr)
+
+
+State 99
+
+   40 expr: expr • OR_OP expr
+   41     | expr • AND_OP expr
+   42     | expr • EQ_OP expr
+   43     | expr • '<' expr
+   44     | expr • '>' expr
+   44     | expr '>' expr •
+   45     | expr • '+' expr
+   46     | expr • '-' expr
+   47     | expr • '*' expr
+   48     | expr • '/' expr
+   49     | expr • '%' expr
+
+    '+'  shift, and go to state 83
+    '-'  shift, and go to state 84
+    '*'  shift, and go to state 85
+    '/'  shift, and go to state 86
+    '%'  shift, and go to state 87
+
+    $default  reduce using rule 44 (expr)
+
+
+State 100
+
+   40 expr: expr • OR_OP expr
+   41     | expr • AND_OP expr
+   42     | expr • EQ_OP expr
+   43     | expr • '<' expr
+   44     | expr • '>' expr
+   45     | expr • '+' expr
+   45     | expr '+' expr •
+   46     | expr • '-' expr
+   47     | expr • '*' expr
+   48     | expr • '/' expr
+   49     | expr • '%' expr
+
+    '*'  shift, and go to state 85
+    '/'  shift, and go to state 86
+    '%'  shift, and go to state 87
+
+    $default  reduce using rule 45 (expr)
+
+
+State 101
+
+   40 expr: expr • OR_OP expr
+   41     | expr • AND_OP expr
+   42     | expr • EQ_OP expr
+   43     | expr • '<' expr
+   44     | expr • '>' expr
+   45     | expr • '+' expr
+   46     | expr • '-' expr
+   46     | expr '-' expr •
+   47     | expr • '*' expr
+   48     | expr • '/' expr
+   49     | expr • '%' expr
+
+    '*'  shift, and go to state 85
+    '/'  shift, and go to state 86
+    '%'  shift, and go to state 87
+
+    $default  reduce using rule 46 (expr)
+
+
+State 102
+
+   40 expr: expr • OR_OP expr
+   41     | expr • AND_OP expr
+   42     | expr • EQ_OP expr
+   43     | expr • '<' expr
+   44     | expr • '>' expr
+   45     | expr • '+' expr
+   46     | expr • '-' expr
+   47     | expr • '*' expr
+   47     | expr '*' expr •
+   48     | expr • '/' expr
+   49     | expr • '%' expr
+
+    $default  reduce using rule 47 (expr)
+
+
+State 103
+
+   40 expr: expr • OR_OP expr
+   41     | expr • AND_OP expr
+   42     | expr • EQ_OP expr
+   43     | expr • '<' expr
+   44     | expr • '>' expr
+   45     | expr • '+' expr
+   46     | expr • '-' expr
+   47     | expr • '*' expr
+   48     | expr • '/' expr
+   48     | expr '/' expr •
+   49     | expr • '%' expr
+
+    $default  reduce using rule 48 (expr)
+
+
+State 104
+
+   40 expr: expr • OR_OP expr
+   41     | expr • AND_OP expr
+   42     | expr • EQ_OP expr
+   43     | expr • '<' expr
+   44     | expr • '>' expr
+   45     | expr • '+' expr
+   46     | expr • '-' expr
+   47     | expr • '*' expr
+   48     | expr • '/' expr
+   49     | expr • '%' expr
+   49     | expr '%' expr •
+
+    $default  reduce using rule 49 (expr)
+
+
+State 105
+
+   24 statement: IF '(' expr ')' • block
+   25          | IF '(' expr ')' • block ELSE block
+
+    '{'  shift, and go to state 33
+
+    block  go to state 108
+
+
+State 106
+
+   26 statement: WHILE '(' expr ')' • block
+
+    '{'  shift, and go to state 33
+
+    block  go to state 109
+
+
+State 107
+
+   36 expr_list_ne: expr ',' expr_list_ne •
+
+    $default  reduce using rule 36 (expr_list_ne)
+
+
+State 108
+
+   24 statement: IF '(' expr ')' block •
+   25          | IF '(' expr ')' block • ELSE block
+
+    ELSE  shift, and go to state 110
+
+    $default  reduce using rule 24 (statement)
+
+
+State 109
+
+   26 statement: WHILE '(' expr ')' block •
+
+    $default  reduce using rule 26 (statement)
+
+
+State 110
+
+   25 statement: IF '(' expr ')' block ELSE • block
+
+    '{'  shift, and go to state 33
+
+    block  go to state 111
+
+
+State 111
+
+   25 statement: IF '(' expr ')' block ELSE block •
+
+    $default  reduce using rule 25 (statement)

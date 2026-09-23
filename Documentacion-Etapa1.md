@@ -54,3 +54,9 @@ Crear nuevos test que contemplen las nuevas reglas.
 Crear archivo para correr los test juntos
 Consultar si hacemos print de los tokens en el lexer (para comprobar que reconocemos los tokens correctos)
 
+## 23/09/2026 -en clase-
+
+Resolución de conflictos con bison
+
+### Test con errores sintácticos
+Se resuelven conflictos de bison. Se modifica el orden en la recursiones para evitar ambigüedad y conflictos shift/reduce.

@@ -39,11 +39,13 @@ int syntax_errors = 0;
 %start program
 
 %%
-program: var_decl_list method_decl_list ;
+program:    var_decl_list method_decl_list 
+            | method_decl_list
+            ;
 
-var_decl_list: var_decl var_decl_list
-             | %empty
-             ;
+var_decl_list: var_decl_list var_decl
+            |  var_decl 
+            ;
 
 var_decl: type id_list ';' ;
 
@@ -51,8 +53,8 @@ id_list: ID
        | ID ',' id_list
        ;
 
-method_decl_list: method_decl method_decl_list
-                 | %empty
+method_decl_list: method_decl_list method_decl
+                 | method_decl
                  ;
 
 method_decl: type ID '(' param_list ')' block
