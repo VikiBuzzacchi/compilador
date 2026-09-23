@@ -60,3 +60,16 @@ Resolución de conflictos con bison
 
 ### Test con errores sintácticos
 Se resuelven conflictos de bison. Se modifica el orden en la recursiones para evitar ambigüedad y conflictos shift/reduce.
+
+## 23/09/2026 (Cami)
+- Se agrego impresion de numero de linea en errores. 
+- Se reemplazó por una lista de ítems que pueden ser declaración o sentencia, en cualquier orden. Antes se exigía al menos una declaración por bloque y todas las declaraciones antes de las sentencias, por lo que `void main() { x = 1; }` o `void main() { x = 1; int y; }` daban error.
+- Se agregó `%define parse.error verbose` en `parser.y`. Ahora el mensaje indica token no esperado.
+
+### Pendiente
+- Recuperación de errores en cascada tras un `;` faltante. Caso (test7error.txt).
+- Ver errores Lexicos:
+1. Entero fuera de rango(test4error.txt, x = 99999999999; en la línea 3). imprime Error: entero fuera de rango: 99999999999 y "Análisis sintáctico exitoso".
+2. Comentario `/*` sin cerrar (test5error.txt) no se detecta como error léxico.
+3. Literales mal formados (test6error.txt). `1.2.3`no se detecta como error lexico. Esta bien?
+

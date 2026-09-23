@@ -7,6 +7,7 @@
 
 extern int yylex();
 extern int lexical_errors;
+extern int prev_line;
 void yyerror(const char *s);
 struct node *root;
 int syntax_errors = 0;
@@ -35,6 +36,8 @@ int syntax_errors = 0;
 %left '+' '-'
 %left '*' '/' '%'
 %right UMINUS UNOT     /* precedencia - y ! */
+
+%define parse.error verbose
 
 %start program
 
@@ -69,11 +72,16 @@ param_list_ne: type ID
              | type ID ',' param_list_ne
              ;
 
-block: '{' var_decl_list statement_list '}' ;
+block: '{' block_item_list '}'
+     ;
 
-statement_list: statement statement_list
-              | %empty
-              ;
+block_item_list: block_item_list block_item
+               | %empty
+               ;
+
+block_item: var_decl
+          | statement
+          ;
 
 type: INT
     | BOOLEAN
@@ -131,5 +139,5 @@ bool_literal: TRUE
 %%
 void yyerror(const char *s) {
     syntax_errors++;
-    fprintf(stderr, "Error sintáctico: %s\n", s);
+    fprintf(stderr, "Error sintáctico en la línea %d: %s\n", prev_line, s);
 }

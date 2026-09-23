@@ -7,6 +7,18 @@
     #include "parser.tab.h"
 
     int lexical_errors = 0;
+
+    // Línea del último token y del anterior (para reportar errores sintácticos)
+    int cur_line = 1;
+    int prev_line = 1;
+
+    // Se ejecuta en cada match; ignora espacios y comentarios
+    #define YY_USER_ACTION \
+        if (!(yytext[0] == ' ' || yytext[0] == '\t' || yytext[0] == '\n' || \
+              (yyleng >= 2 && yytext[0] == '/' && (yytext[1] == '/' || yytext[1] == '*')))) { \
+            prev_line = cur_line; \
+            cur_line = yylineno; \
+        }
 %}
 
 %option yylineno
@@ -81,4 +93,4 @@
 .           { lexical_errors++; fprintf(stderr, "Error léxico: símbolo '%s' no reconocido en la línea %d\n", yytext, yylineno); }
 
 %%
-int yywrap() { return 1; }
+int yywrap() { prev_line = cur_line; return 1; }
