@@ -4,92 +4,139 @@
 #include "ast.h"
 #include "symbol_table.h"
 
-struct node *create_node(enum node_type type, struct node *left, struct node *right) {
-    struct node *n = malloc(sizeof(struct node));
-    n->type = type;
+static struct node *new_node(enum node_kind kind, int line) {
+    struct node *n = calloc(1, sizeof(struct node));
+    n->kind = kind;
+    n->line = line;
+    n->op = OP_NONE;
+    n->data_type = TYPE_VOID;
+    return n;
+}
+
+struct node *append_node(struct node *list, struct node *n) {
+    if (!list) return n;
+    struct node *last = list;
+    while (last->next) last = last->next;
+    last->next = n;
+    return list;
+}
+
+struct node *new_program(struct node *globals, struct node *methods) {
+    struct node *n = new_node(NODE_PROGRAM, 1);
+    n->left = globals;
+    n->right = methods;
+    return n;
+}
+
+struct node *new_var_decl(struct symbol *sym, int line) {
+    struct node *n = new_node(NODE_VAR_DECL, line);
+    n->sym = sym;
+    if (sym) {
+        n->id = sym->name;
+        n->data_type = sym->type;
+    }
+    return n;
+}
+
+struct node *new_method_decl(struct symbol *sym, struct node *body, int line) {
+    struct node *n = new_node(NODE_METHOD_DECL, line);
+    n->sym = sym;
+    n->left = body;
+    if (sym) {
+        n->id = sym->name;
+        n->data_type = sym->type;
+    }
+    return n;
+}
+
+struct node *new_block(struct node *items, int line) {
+    struct node *n = new_node(NODE_BLOCK, line);
+    n->left = items;
+    return n;
+}
+
+struct node *new_assign(struct node *target, struct node *expr, int line) {
+    struct node *n = new_node(NODE_ASSIGN, line);
+    n->left = target;
+    n->right = expr;
+    return n;
+}
+
+struct node *new_if(struct node *cond, struct node *then_block, struct node *else_block, int line) {
+    struct node *n = new_node(NODE_IF, line);
+    n->left = cond;
+    n->right = then_block;
+    n->third = else_block;
+    return n;
+}
+
+struct node *new_while(struct node *cond, struct node *body, int line) {
+    struct node *n = new_node(NODE_WHILE, line);
+    n->left = cond;
+    n->right = body;
+    return n;
+}
+
+struct node *new_return(struct node *expr, int line) {
+    struct node *n = new_node(NODE_RETURN, line);
+    n->left = expr;
+    return n;
+}
+
+struct node *new_binop(enum op_type op, struct node *left, struct node *right, int line) {
+    struct node *n = new_node(NODE_BINOP, line);
+    n->op = op;
     n->left = left;
     n->right = right;
-    n->id = NULL;
-    n->sym = NULL;
-    n->val = 0;
     return n;
 }
 
-struct node *create_var_node(char *id) {
-    struct node *n = malloc(sizeof(struct node));
-    n->type = NODE_VAR;
-    n->id = strdup(id);
-    n->sym = search_symbol(id);
-    n->left = NULL;
-    n->right = NULL;
+struct node *new_unop(enum op_type op, struct node *expr, int line) {
+    struct node *n = new_node(NODE_UNOP, line);
+    n->op = op;
+    n->left = expr;
     return n;
 }
 
-struct node *create_const_node(int val) {
-    struct node *n = malloc(sizeof(struct node));
-    n->type = NODE_INT;
-    n->val = val;
-    n->sym = NULL;
-    n->left = NULL;
-    n->right = NULL;
+struct node *new_int(int val, int line) {
+    struct node *n = new_node(NODE_INT, line);
+    n->value.ival = val;
+    n->data_type = TYPE_INT;
     return n;
 }
 
-int eval(struct node *t) {
-    if (!t) return 0;
-    switch(t->type) {
-        case NODE_INT: return t->val;
-        case NODE_VAR: {
-            return t->sym ? t->sym->value : 0;
-        }
-        case NODE_NEG: return -eval(t->left);
-        case NODE_ADD: return eval(t->left) + eval(t->right);
-        case NODE_SUB: return eval(t->left) - eval(t->right);
-        case NODE_MUL: return eval(t->left) * eval(t->right);
-        case NODE_ASG: {
-            int val = eval(t->right);
-            if (t->left->sym) t->left->sym->value = val;
-            return val;
-        }
-        case NODE_SEQ:
-            eval(t->left);
-            return eval(t->right);
-        case NODE_RET: {
-            int ret_val = t->left ? eval(t->left) : 0;
-            printf(">> Return ejecutado con valor: %d\n", ret_val);
-            return ret_val;
-        }
-        default: return 0;
-    }
+struct node *new_float(float val, int line) {
+    struct node *n = new_node(NODE_FLOAT, line);
+    n->value.fval = val;
+    n->data_type = TYPE_FLOAT;
+    return n;
 }
 
-void gen_code(struct node *t) {
-    if (!t) return;
-    if (t->type == NODE_INT) {
-        printf("PUSHC %d\n", t->val);
-    } else if (t->type == NODE_VAR) {
-        printf("PUSHA %s\n", t->id);
-        printf("LOAD\n");
-    } else if (t->type == NODE_ASG) {
-        printf("PUSHA %s\n", t->left->id);
-        gen_code(t->right);
-        printf("STORE\n");
-    } else if (t->type == NODE_SEQ) {
-        gen_code(t->left);
-        if (t->left && t->left->type != NODE_ASG && t->left->type != NODE_RET) printf("POP\n");
-        gen_code(t->right);
-    } else if (t->type == NODE_RET) {
-        if (t->left) gen_code(t->left);
-        printf("RET\n");
-    } else {
-        gen_code(t->left);
-        if (t->right) gen_code(t->right);
-        switch(t->type) {
-            case NODE_ADD: printf("ADD\n"); break;
-            case NODE_SUB: printf("NEG\nADD\n"); break;
-            case NODE_MUL: printf("MUL\n"); break;
-            case NODE_NEG: printf("NEG\n"); break;
-            default: break;
-        }
-    }
+struct node *new_bool(int val, int line) {
+    struct node *n = new_node(NODE_BOOL, line);
+    n->value.ival = val ? 1 : 0;
+    n->data_type = TYPE_BOOL;
+    return n;
+}
+
+struct node *new_id(char *name, int line) {
+    struct node *n = new_node(NODE_ID, line);
+    n->id = strdup(name);
+    n->sym = search_symbol(name);
+    if (n->sym) n->data_type = n->sym->type;
+    return n;
+}
+
+struct node *new_call(char *name, struct node *args, int line) {
+    struct node *n = new_node(NODE_CALL, line);
+    n->id = strdup(name);
+    n->sym = search_symbol(name);
+    n->left = args;
+    if (n->sym) n->data_type = n->sym->type;
+    return n;
+}
+
+
+void print_ast(struct node *t) {
+    (void) t;
 }

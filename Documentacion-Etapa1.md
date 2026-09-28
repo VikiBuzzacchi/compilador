@@ -75,3 +75,14 @@ Se resuelven conflictos de bison. Se modifica el orden en la recursiones para ev
 2. **Comentario `/*` sin cerrar** (test5error.txt) no se detecta como error léxico.
 3. **Literales mal formados** (test6error.txt). `1.2.3`no se detecta como error lexico. Esta bien?
 
+
+## 28/09/2026 (Cami)
+Se corrigieron los pendientes 1 y 2. 
+
+- **Entero fuera de rango** (test4error): ahora suma lexical_errors++.
+- **Comentario `/*` sin cerrar** (test5error): se agregó una regla `"/*"` en `lexer.l`. `"/*"` solo matchea cuando no hay cierre.
+- **; faltante** (test7error): la regla `error ';'` descartaba tokens hasta el próximo `;`.
+
+### Pendiente
+1. **Literales mal formados** (test6error.txt). `1.2.3`no se detecta como error lexico. Deberia dar error lexico?
+
