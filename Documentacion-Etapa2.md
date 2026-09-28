@@ -5,11 +5,9 @@ Entregas:
 - Análisis semántico: miércoles 07/10/2026.
 
 ## 28/09/2026 (Cami)
-Se reescribieron `ast.h`, `ast.c`, y  para el lenguaje completo agregando los nuevos tipos de nodos y funciones para cada uno. Cada nivel de la pila de niveles, es una lista de símbolos en orden de declaración: se agrego a  `symbol_table.h` las cabeceras de los metodos que ya estaban implentados en `symbol_table.c`
+Se reescribieron `ast.h`, `ast.c`, y  para el lenguaje completo agregando los nuevos tipos de nodos y funciones para cada uno.
 
 ### Decisiones de diseño
-- **Los errores no los imprime la Tabla de simbolos.**
-
 - **Modificaciones de node de AST**:     
     1. Se cambió nombre de `node_type` por `node_kind` para evitar confusiones.
     2. Se agrego `third` para la rama else del IF-THEN-ELSE.
@@ -25,19 +23,10 @@ Se reescribieron `ast.h`, `ast.c`, y  para el lenguaje completo agregando los nu
 - **`new_id` y `new_call` resuelven el nombre al crearse** con `search_symbol`. Si no existe, `sym` queda en `NULL` y el error lo reporta el semántico.
     - *Motivo:* la búsqueda tiene que hacerse cuando el nodo se crea, mientras está abierto el nivel donde aparece el identificador. Después del parseo los niveles ya están cerrados y no se sabe qué `x` era cuál. Además, el parser no tiene que repetir la búsqueda en cada regla.
 
-
-
 ### Pendiente
-- Consultar: como el bloque del método abre su propio nivel, hoy se podría declarar una variable local con el mismo nombre que un parámetro. ¿Tiene que ser error?
-- Consultar: ¿se puede llamar a un método declarado más abajo en el archivo? Hoy `new_call` deja `sym` en `NULL` en ese caso.
-- `print_symbol_table` desalinea las columnas con palabras acentuadas ("método", "parámetro").
-- El `Makefile` no recompila cuando cambia un `.h`. Después de modificar un header, correr `make clean && make`.
+- VER: como el bloque del método abre su propio nivel, hoy se podría declarar una variable local con el mismo nombre que un parámetro. ERROR?
+- VER: ¿se puede llamar a un método declarado más abajo en el archivo?
 
-
-## Reparto de tareas
-
-| Quién | Tareas |
-| Cami | Headers (`ast.h`, `symbol_table.h`), tabla de símbolos (`symbol_table.c`), constructores del AST (`ast.c`), correcciones de la Etapa 1 (test4error, test5error, test7error). **Hecho.** |
-| Victoria | `parser.y`: construir el AST y cargar la TS |
-| Trini | Tabla de símbolos: completar `print_symbol_table` (alinear columnas con acentos), `print_ast` en `ast.c`, tests nuevos de TS y AST. |
+- Tabla de símbolos y tests nuevos de TS y AST. Corrección de tarea pendiente etapa 1. actualizar readme  (Trini)
+- `parser.y`: construir el AST y cargar la TS y main (Victoria)
 
