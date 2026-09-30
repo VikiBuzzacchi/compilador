@@ -41,12 +41,12 @@
 
 "//".*    { /* comentario de linea */}
 \/\*([^*]|\*+[^*/])*\*+\/ { /* comentario multilinea */ }
-\/\*([^*]|\*+[^*/])*\**  {
-        int nl = 0;
-        for (int i = 0; i < yyleng; i++) if (yytext[i] == '\n') nl++;
-        lexical_errors++;
-        fprintf(stderr, "Error léxico: comentario sin cerrar en la línea %d\n", yylineno - nl);
-    }
+"/*"        {   /* solo matchea si el comentario no se cierra (la regla anterior es más larga) */
+                int linea = yylineno;
+                int c;
+                while ((c = input()) != 0 && c != EOF);
+                lexical_errors++;
+                fprintf(stderr, "Error léxico: comentario sin cerrar en la línea %d\n", linea); }
 [ \t]+      { /* ignorar */ }
 \n          { /* ignorar */ }
 
@@ -57,8 +57,8 @@
     /* Literal entero */
 
 [0-9]+      {   long valor = strtol(yytext, NULL, 10);
-                if (valor > 2147483647L || valor < -2147483648L) {
-                    lexical_errors++; 
+                if (valor > 2147483647L) {
+                    lexical_errors++;
                     fprintf(stderr, "Error léxico: entero '%s' fuera de rango en la línea %d\n", yytext, yylineno);
                 }
                 yylval.val = (int) valor;

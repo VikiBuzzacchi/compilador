@@ -98,6 +98,7 @@ statement: ID '=' expr ';'
          | ';'
          | block
          | error ';'      { yyerrok; }
+         | ID '=' expr error      /* falta el ';'. Sin yyerrok: no reporta tokens sobrantes */
          ;
 
 method_call: ID '(' expr_list ')' ;

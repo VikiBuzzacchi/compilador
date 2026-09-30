@@ -36,7 +36,7 @@ void close_level(void) {
     free(lvl);
 }
 
-struct symbol *insert_symbol(char *name, int type) {
+struct symbol *insert_symbol(char *name, enum sym_type type) {
     if (!top) return NULL;
     for (struct symbol *s = top->symbols; s; s = s->next) {
         if (strcmp(s->name, name) == 0) {
