@@ -75,3 +75,13 @@ Se resuelven conflictos de bison. Se modifica el orden en la recursiones para ev
 2. **Comentario `/*` sin cerrar** (test5error.txt) no se detecta como error léxico.
 3. **Literales mal formados** (test6error.txt). `1.2.3`no se detecta como error lexico. Esta bien?
 
+
+## 29/09/2026 (Trini)
+
+-Resolución de conflictos lexicos: se contabilizan errores por valor fuera de rango.
+Se contempla el caso de comentarios multilinea sin cerrar en el lexer.
+
+
+
+
+
