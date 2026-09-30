@@ -1,8 +1,9 @@
-# Compilador — Pre-Proyecto (Taller de Diseño de Software, Cod. 3306)
+# Compilador — Proyecto (Taller de Diseño de Software, Cod. 3306)
 
 Compilador para un lenguaje de expresiones extendido con declaración de
-variables (`int`/`bool`), asignaciones, constantes lógicas y una función
-`main` con sentencias `return`. Implementado con `lex` (Flex) y `bison`.
+variables (`int`/`float`/`bool`), métodos con parámetros, `if`/`else`, `while`,
+`return`, llamadas y expresiones aritméticas, relacionales y lógicas.
+Implementado con Flex y Bison.
 
 ## Requisitos
 
@@ -23,11 +24,8 @@ make clean  # limpia binarios
 ./compilador < tests/cases/test1.txt
 ```
 
-Si no hay errores léxicos/sintácticos, imprime el pseudo-assembly generado
-y el resultado de interpretar el AST (incluyendo cada `return`). Si hay
-errores, se listan con su número de línea y no se genera código.
 
-### Tests automáticos 
+## Tests automáticos
 
 ```sh
 make test          # o ./run_tests.sh
@@ -54,9 +52,9 @@ Cada test pasa (`PASS`) o falla (`FAIL`).
 1. Analizador léxico (lexer.l)
 2. Parser, lex + bison (parser.y)
 3. AST (ast.h, ast.c)
-4. tabla de símbolos (symbol_table.c)
+4. tabla de símbolos (symbol_table.c, symbol_table.h)
 5. Intérprete (ast.c)
-6. Generador de pseudo-assembly (ast.c)
+
 
 ## Tabla de símbolos
 

@@ -47,6 +47,17 @@ Cada nivel guarda una lista de símbolos
 -Nuevos campos `nparams` y `param_types`: guardan cuántos parámetros tiene un método y de qué tipo es cada uno. Todavía no se cargan (valen `0` y `NULL`); se usarán al chequear las invocaciones.
 -`insert_symbol` y `search_symbol` ya no imprimen nada: devuelven `NULL` si el nombre ya existe en el nivel actual / si no se encuentra.
     *Motivo:* el mensaje necesita la línea del error y solo la conocen quien crea el nodo (`new_id`, `new_call`) y el parser (`declare`).
+
+### Tarea pendiente etapa 1
+`1.2.3` no se detecta como error léxico: los flotantes se definen como en C. El lexer reconoce `1.2` y `.3` como dos `CONSTFLOAT` consecutivos, y cada uno es un token válido. Por eso el error lo detecta el parser y se reporta como **sintáctico**.
  
+### Pendiente
+
+- **`parser.y`(Victoria):** conectar con la tabla de símbolos: `declare()` con `kind`, y apertura/cierre de niveles (método, parámetros y bloques).
+- **`ast.c` / `ast.h`:** `new_id` y `new_call` deben imprimir `'x' no declarado` con la línea y sumar a `semantic_errors` cuando `sym` es `NULL`. En `ast.h` falta `extern int semantic_errors;`.
+- Completar `nparams` y `param_types` al declarar métodos (chequeo de argumentos).
+- Verificar que exista `main` sin parámetros.
+
+
 
 
