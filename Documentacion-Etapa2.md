@@ -30,3 +30,23 @@ Se reescribieron `ast.h`, `ast.c`, y  para el lenguaje completo agregando los nu
 - Tabla de símbolos y tests nuevos de TS y AST. Corrección de tarea pendiente etapa 1. actualizar readme  (Trini)
 - `parser.y`: construir el AST y cargar la TS y main (Victoria)
 
+
+## 29/09/2026 (Trini)
+Se actualizaron los archivos `symbol_table.h` y `symbol_table.c`.
+
+### Tabla de símbolos
+Cada nivel guarda una lista de símbolos
+- **open_level** apila un nivel
+- **close_level** desapila un nivel 
+- **insert_symbol** inserta en el nivel actual
+- **search_symbol** busca desde nivel más interno al más global
+
+-`struct symbol` tiene un campo nuevo `kind` (`SYM_VAR`, `SYM_PARAM`,`SYM_METHOD`). 
+  `insert_symbol` recibe `kind` como tercer parámetro.
+        -Para distinguir métodos de variables.
+-Nuevos campos `nparams` y `param_types`: guardan cuántos parámetros tiene un método y de qué tipo es cada uno. Todavía no se cargan (valen `0` y `NULL`); se usarán al chequear las invocaciones.
+-`insert_symbol` y `search_symbol` ya no imprimen nada: devuelven `NULL` si el nombre ya existe en el nivel actual / si no se encuentra.
+    *Motivo:* el mensaje necesita la línea del error y solo la conocen quien crea el nodo (`new_id`, `new_call`) y el parser (`declare`).
+ 
+
+

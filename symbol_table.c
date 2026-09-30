@@ -25,22 +25,14 @@ void open_level(void) {
 void close_level(void) {
     if (!top) return;
     struct level *lvl = top;
-    struct symbol *s = lvl->symbols;
-    while (s) {
-        struct symbol *next = s->next;
-        free(s->name);
-        free(s);
-        s = next;
-    }
     top = lvl->prev;
     free(lvl);
 }
 
-struct symbol *insert_symbol(char *name, enum sym_type type) {
+struct symbol *insert_symbol(char *name, enum sym_type type, enum sym_kind kind) {
     if (!top) return NULL;
     for (struct symbol *s = top->symbols; s; s = s->next) {
         if (strcmp(s->name, name) == 0) {
-            printf("Error semántico: Variable '%s' ya declarada.\n", name);
             return NULL;
         }
     }
@@ -48,6 +40,9 @@ struct symbol *insert_symbol(char *name, enum sym_type type) {
     s->flag = 0;
     s->name = strdup(name);
     s->type = type;
+    s->kind = kind;
+    s->nparams = 0;
+    s->param_types = NULL;
     s->value = 0;
     s->next = top->symbols;
     top->symbols = s;
@@ -60,6 +55,5 @@ struct symbol *search_symbol(char *name) {
             if (strcmp(s->name, name) == 0) return s;
         }
     }
-    printf("Error semántico: Variable '%s' no declarada.\n", name);
     return NULL;
 }
