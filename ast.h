@@ -64,6 +64,9 @@ struct node *new_int(int val, int line);
 struct node *new_float(float val, int line);
 struct node *new_bool(int val, int line);
 
+// Contador de errores semánticos (se define en ast.c)
+extern int semantic_errors;
+
 // Resuelven el nombre con search_symbol al crearse (sym queda en NULL si no existe)
 struct node *new_id(char *name, int line);
 struct node *new_call(char *name, struct node *args, int line);

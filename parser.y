@@ -12,7 +12,6 @@ extern int cur_line;
 void yyerror(const char *s);
 struct node *root;
 int syntax_errors = 0;
-int semantic_errors = 0;
 
 // Declara un símbolo en el nivel actual. Si el nombre ya existe ahí, reporta el error
 static struct symbol *declare(char *name, enum sym_type type, enum sym_kind kind) {

@@ -67,20 +67,16 @@ Cada nivel guarda una lista de símbolos
 - **Bloques:** `block` abre y cierra su propio nivel. Lo usan `if`, `else`, `while` y los bloques sueltos.
 - **`new_method_decl`** ahora recibe los parámetros: `new_method_decl(sym, params, body, line)`. Los parámetros quedan en `right` del nodo.
 - **`main.c`** llama a `init_symbol_table() y cuenta errores semanticos.
-- **Errores semánticos:** se reporta `'x' ya declarado` con la línea y suma a `semantic_errors`. `semantic_errors` se define en `parser.y`.
+- **Errores semánticos:** se reportan en ast.
+- Identificadores no declarados: `new_id` y `new_call` dejan `sym = NULL`y se reporta `'x' no declarado`. 
 
 
 ### Pendiente
-- Identificadores no declarados: `new_id` y `new_call` dejan `sym = NULL`, pero todavía no se reporta `'x' no declarado`. Hay que agregarlo en `ast.c` con `semantic_errors++`.
-- `nparams` y `param_types`:*siguen en 0 y `NULL`. Hay que completarlos en `method_head`/`method_decl` para chequear llamadas.
-- Llamadas a métodos declarados más abajo: con la implementación actual no se pueden hacer, porque el método se inserta al parsear su cabecera. Decidir si se hace una pasada previa o se chequea en el semántico.
-- `print_ast`: está vacío. Sin él no se puede ver el árbol.
-- Números de línea: `cur_line` es la línea del último token leído, que puede ser el token siguiente por lookahead. Para la línea exacta haría falta `%locations`.
-- Recuperación de errores: si hay un error sintáctico dentro del cuerpo de un método, el nivel podría quedar sin cerrar.
-- Tests:
+- Completar `nparams` y `param_types` al declarar métodos (chequeo de argumentos). `
+- Números de línea para errores semanticos desfasados (test8error.txt)
+- Recuperación de errores: si hay un error sintáctico dentro del cuerpo de un método, el nivel podría quedar sin cerrar! ver (test9error.txt)
+- Tests
 - Actualizar Readme
-- Archivos generados: `parser.tab.c`, `parser.tab.h` y `lex.yy.c` están versionados y quedaron desactualizados. Se regeneran con `make`.
-
 
 
 

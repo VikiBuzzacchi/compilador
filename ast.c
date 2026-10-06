@@ -4,6 +4,14 @@
 #include "ast.h"
 #include "symbol_table.h"
 
+int semantic_errors = 0;
+
+// Reporta un nombre usado sin haber sido declarado
+static void report_undeclared(char *name, int line) {
+    semantic_errors++;
+    fprintf(stderr, "Error semántico en la línea %d: '%s' no declarado\n", line, name);
+}
+
 static struct node *new_node(enum node_kind kind, int line) {
     struct node *n = calloc(1, sizeof(struct node));
     n->kind = kind;
@@ -125,6 +133,7 @@ struct node *new_id(char *name, int line) {
     n->id = strdup(name);
     n->sym = search_symbol(name);
     if (n->sym) n->data_type = n->sym->type;
+    else report_undeclared(name, line);
     return n;
 }
 
@@ -134,6 +143,7 @@ struct node *new_call(char *name, struct node *args, int line) {
     n->sym = search_symbol(name);
     n->left = args;
     if (n->sym) n->data_type = n->sym->type;
+    else report_undeclared(name, line);
     return n;
 }
 

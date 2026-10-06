@@ -1,0 +1,6 @@
+Error semántico en la línea 3: 'b' no declarado
+Error semántico en la línea 5: 'c' no declarado
+
+Fallo en el análisis sintáctico.
+Errores semánticos: 2
+Se encontraron 2 errores en total.
