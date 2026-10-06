@@ -38,10 +38,11 @@ struct node *new_var_decl(struct symbol *sym, int line) {
     return n;
 }
 
-struct node *new_method_decl(struct symbol *sym, struct node *body, int line) {
+struct node *new_method_decl(struct symbol *sym, struct node *params, struct node *body, int line) {
     struct node *n = new_node(NODE_METHOD_DECL, line);
     n->sym = sym;
     n->left = body;
+    n->right = params;
     if (sym) {
         n->id = sym->name;
         n->data_type = sym->type;

@@ -5,6 +5,7 @@ extern int yyparse();
 extern struct node *root;
 extern int lexical_errors;
 extern int syntax_errors;
+extern int semantic_errors;
 extern FILE *yyin;
 
 int main(int argc, char **argv) {
@@ -16,9 +17,10 @@ int main(int argc, char **argv) {
         }
     }
 
+    init_symbol_table();
     int ok = yyparse();
 
-    if (ok == 0 && lexical_errors == 0 && syntax_errors == 0) {
+    if (ok == 0 && lexical_errors == 0 && syntax_errors == 0 && semantic_errors == 0) {
         printf("\n--- Análisis sintáctico exitoso ---\n");
         //printf("\n--- Generando Código Pseudo-Assembly ---\n");
         //gen_code(root);
@@ -34,7 +36,11 @@ int main(int argc, char **argv) {
             printf("Errores sintácticos: %d\n", syntax_errors);
         }
 
-        int total = lexical_errors + syntax_errors;
+        if (semantic_errors > 0) {
+            printf("Errores semánticos: %d\n", semantic_errors);
+        }
+
+        int total = lexical_errors + syntax_errors + semantic_errors;
         printf("Se encontraron %d errores en total.\n", total);
     }
 

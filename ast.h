@@ -8,7 +8,7 @@
 enum node_kind {
     NODE_PROGRAM,       // left: variables globales, right: métodos
     NODE_VAR_DECL,      // sym
-    NODE_METHOD_DECL,   // sym, left: cuerpo (NODE_BLOCK)
+    NODE_METHOD_DECL,   // sym, right: parámetros (NODE_VAR_DECL), left: cuerpo (NODE_BLOCK)
     NODE_BLOCK,         // left: lista de declaraciones y sentencias
     NODE_ASSIGN,        // left: NODE_ID, right: expresión
     NODE_CALL,          // id, sym, left: lista de argumentos
@@ -52,7 +52,7 @@ struct node *append_node(struct node *list, struct node *n);
 
 struct node *new_program(struct node *globals, struct node *methods);
 struct node *new_var_decl(struct symbol *sym, int line);
-struct node *new_method_decl(struct symbol *sym, struct node *body, int line);
+struct node *new_method_decl(struct symbol *sym, struct node *params, struct node *body, int line);
 struct node *new_block(struct node *items, int line);
 struct node *new_assign(struct node *target, struct node *expr, int line);
 struct node *new_if(struct node *cond, struct node *then_block, struct node *else_block, int line);
