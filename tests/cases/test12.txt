@@ -1,0 +1,11 @@
+void f() {
+}
+void g(int f) {
+  f = 2;
+}
+void main() {
+  int x;
+  f();
+  g(x);
+  x = 1;
+}

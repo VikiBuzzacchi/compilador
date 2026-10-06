@@ -72,11 +72,13 @@ Cada nivel guarda una lista de símbolos
 
 
 ### Pendiente
-- Completar `nparams` y `param_types` al declarar métodos (chequeo de argumentos). `
+- (***) Completar `nparams` y `param_types` al declarar métodos (chequeo de argumentos). `
 - Números de línea para errores semanticos desfasados (test8error.txt)
 - Recuperación de errores: si hay un error sintáctico dentro del cuerpo de un método, el nivel podría quedar sin cerrar! ver (test9error.txt)
 - Tests
 - Actualizar Readme
+- Verificar que exista `main` sin parámetros. Luego de (***)
+
 
 
 
