@@ -142,8 +142,20 @@ struct node *new_call(char *name, struct node *args, int line) {
     n->id = strdup(name);
     n->sym = search_symbol(name);
     n->left = args;
-    if (n->sym) n->data_type = n->sym->type;
-    else report_undeclared(name, line);
+    //if (n->sym) n->data_type = n->sym->type;
+    if (!n->sym)
+        report_undeclared(name, line);
+    else if (n->sym->kind != SYM_METHOD) {
+        semantic_errors++;
+        fprintf(stderr, "Error semántico en la línea %d: '%s' no es un método\n", line, name);
+    }
+    else
+        n->data_type = n->sym->type;
+    //if (n->sym && n->sym->kind != SYM_METHOD) {
+    //semantic_errors++;
+    //fprintf(stderr, "Error semántico en la línea %d: '%s' no es un método\n", line, name);
+    //}
+    //else report_undeclared(name, line);
     return n;
 }
 
