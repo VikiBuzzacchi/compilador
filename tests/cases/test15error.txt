@@ -1,0 +1,7 @@
+int suma(int a, int b) {
+  return a + b;
+}
+void main() {
+  int r;
+  r = suma(1);
+}

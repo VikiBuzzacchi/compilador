@@ -80,5 +80,28 @@ Cada nivel guarda una lista de símbolos
 - Verificar que exista `main` sin parámetros. Luego de (***)
 
 
+## Corrección en test (Trini)
 
+### Correcciones para los tests de errores 
+- **Chequeo de `kind` en `new_call`** (`test10error`, `test14error`):
+  `new_call` distingue tres casos al resolver el nombre: no existe (`'x' no declarado`), existe pero no es un método (`'x' no es un método`) y existe y es un método (guarda el tipo de retorno en `data_type`).
+  Variables y métodos comparten el espacio de nombres, por lo que hay que verificar `kind` para rechazar la invocación de algo que no es un método.
+- **Línea de los errores de identificadores** (`test8error`):
+  - *Problema:* `new_id` y `new_call` recibían `cur_line`, la línea del último token leído por el lexer. Bison puede leer un token de más antes de reducir una regla, así que el error se reportaba en la línea del token siguiente (`b` en la línea 3, reportado en la 4).
+  - *Solución:* se activó `%locations` en `parser.y`, el lexer guarda la línea de cada token en `yylloc.first_line` (`YY_USER_ACTION`) y las reglas de `ID` (`statement`, `method_call`, `expr`) usan `@1.first_line`, la línea del propio identificador.
+- **Recuperación de errores en declaraciones** (`test9error`):
+  - *Problema:* ante un `;` faltante en una declaración, la regla `error ';'` descartaba tokens hasta el siguiente `;` y se comía la `}` que cerraba el bloque. El nivel quedaba abierto, el parser perdía el balance de llaves y fallaba con `unexpected VOID` en la declaración siguiente.
+  - *Solución:* se agregó `var_decl: type id_list error`, que declara las variables y deja la `}` sin consumir. 
+  - `a` se declara dentro del bloque del `if`, por lo que el uso de `a` en la línea 3 se reporta como `'a' no declarado`. Y el `.expected` se actualizó para incluirlo.
+- **Expected corregidos:** `test10error.expected` pasó de la línea 4 a la 5 (el error se reporta en la línea de la llamada `f();`) y `test9error.expected` incluye el error de `'a' no declarado`. 
+
+- **Chequeo de cantidad de argumentos**
+  (`test15error`, `test16error`, `test17`): `set_signature` carga `nparams` y `param_types` en el símbolo del método. Se ejecuta con una acción después de `param_list` y antes del cuerpo. `new_call` compara la cantidad de argumentos con `nparams` y reporta `'f' espera N argumentos y recibe M`. El chequeo está solo en la rama
+  donde el símbolo existe y es un método; fuera de ella `sym` puede ser `NULL`.
+
+- **Verificación de `main`:** `check_main` se ejecuta al reducir `program` y reporta si no existe un método `main` o si tiene parámetros.
+
+### Pendiente
+- **Chequeo de tipos no implementado**: Validar argumentos, condiciones de `if`/`while`, operandos, asignaciones
+  y `return`
 

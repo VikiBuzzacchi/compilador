@@ -1,7 +1,8 @@
 Error sintáctico en la línea 2: syntax error, unexpected '}', expecting ';'
+Error semántico en la línea 3: 'a' no declarado
 Error semántico en la línea 5: 'f' ya declarado
 
 Fallo en el análisis sintáctico.
 Errores sintácticos: 1
-Errores semánticos: 1
-Se encontraron 2 errores en total.
+Errores semánticos: 2
+Se encontraron 3 errores en total.

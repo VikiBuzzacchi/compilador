@@ -14,6 +14,7 @@
 
     // Se ejecuta en cada match; ignora espacios y comentarios
     #define YY_USER_ACTION \
+        yylloc.first_line = yylineno; \
         if (!(yytext[0] == ' ' || yytext[0] == '\t' || yytext[0] == '\n' || \
               (yyleng >= 2 && yytext[0] == '/' && (yytext[1] == '/' || yytext[1] == '*')))) { \
             prev_line = cur_line; \

@@ -2,6 +2,7 @@
 // Analizador Sintáctico
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "ast.h"
 #include "symbol_table.h"
 
@@ -37,7 +38,43 @@ static struct node *name_node(char *name) {
     n->id = name;
     return n;
 }
+
+// Declara cada ID de una lista con el tipo recibido
+static struct node *declare_list(struct node *list, enum sym_type type) {
+    for (struct node *n = list; n; n = n->next) {
+        n->sym = declare(n->id, type, SYM_VAR);
+        n->data_type = type;
+    }
+    return list;
+}
+
+// Guarda en el símbolo del método la cantidad y los tipos de sus parámetros
+static void set_signature(struct symbol *m, struct node *params) {
+    if (!m) return;
+    int n = 0;
+    for (struct node *p = params; p; p = p->next) n++;
+    m->nparams = n;
+    if (n == 0) { m->param_types = NULL; return; }
+    m->param_types = malloc(n * sizeof(enum sym_type));
+    int i = 0;
+    for (struct node *p = params; p; p = p->next)
+        m->param_types[i++] = p->data_type;
+}
+
+// Regla: el programa debe definir un método main sin parámetros
+static void check_main(void) {
+    struct symbol *m = search_symbol("main");
+    if (!m || m->kind != SYM_METHOD) {
+        semantic_errors++;
+        fprintf(stderr, "Error semántico: no se encontró el método 'main'\n");
+    } else if (m->nparams != 0) {
+        semantic_errors++;
+        fprintf(stderr, "Error semántico: 'main' no debe tener parámetros\n");
+    }
+}
 %}
+
+%locations
 
 %union {
     int val;
@@ -77,22 +114,17 @@ static struct node *name_node(char *name) {
 %start program
 
 %%
-program:    var_decl_list method_decl_list  { root = new_program($1, $2); }
-            | method_decl_list              { root = new_program(NULL, $1); }
+program:    var_decl_list method_decl_list  { root = new_program($1, $2); check_main(); }
+            | method_decl_list              { root = new_program(NULL, $1); check_main(); }
             ;
 
 var_decl_list: var_decl_list var_decl   { $$ = append_node($1, $2); }
             |  var_decl                 { $$ = $1; }
             ;
 
-var_decl: type id_list ';' {
-              for (struct node *n = $2; n; n = n->next) {
-                  n->sym = declare(n->id, $1, SYM_VAR);
-                  n->data_type = $1;
-              }
-              $$ = $2;
-          }
-        ;
+var_decl: type id_list ';'    { $$ = declare_list($2, $1); }
+        | type id_list error  { $$ = declare_list($2, $1); }  /* falta el ';' */
+        ;        
 
 id_list: ID                 { $$ = name_node($1); }
        | ID ',' id_list     { $$ = name_node($1); $$->next = $3; }
@@ -103,9 +135,18 @@ method_decl_list: method_decl_list method_decl  { $$ = append_node($1, $2); }
                  ;
 
 /* El nivel del método se abre en method_head y se cierra acá:
-   contiene los parámetros y las variables del cuerpo */
+   contiene los parámetros y las variables del cuerpo 
 method_decl: method_head '(' param_list ')' '{' block_item_list '}' {
                  $$ = new_method_decl($1, $3, new_block($6, cur_line), cur_line);
+                 close_level();
+             }
+           ;*/
+
+method_decl: method_head '(' param_list ')' {
+                 set_signature($1, $3);
+             }
+             '{' block_item_list '}' {
+                 $$ = new_method_decl($1, $3, new_block($7, cur_line), cur_line);
                  close_level();
              }
            ;
@@ -142,7 +183,7 @@ type: INT       { $$ = TYPE_INT; }
     | FLOAT     { $$ = TYPE_FLOAT; }
     ;
 
-statement: ID '=' expr ';'                  { $$ = new_assign(new_id($1, cur_line), $3, cur_line); }
+statement: ID '=' expr ';'                  { $$ = new_assign(new_id($1, @1.first_line), $3, cur_line); }
          | method_call ';'                  { $$ = $1; }
          | IF '(' expr ')' block            { $$ = new_if($3, $5, NULL, cur_line); }
          | IF '(' expr ')' block ELSE block { $$ = new_if($3, $5, $7, cur_line); }
@@ -155,7 +196,8 @@ statement: ID '=' expr ';'                  { $$ = new_assign(new_id($1, cur_lin
          | ID '=' expr error                { $$ = NULL; }  /* falta el ';'. Sin yyerrok: no reporta tokens sobrantes */
          ;
 
-method_call: ID '(' expr_list ')'   { $$ = new_call($1, $3, cur_line); }
+
+method_call: ID '(' expr_list ')'   { $$ = new_call($1, $3, @1.first_line); }
            ;
 
 expr_list: expr_list_ne     { $$ = $1; }
@@ -166,7 +208,7 @@ expr_list_ne: expr                  { $$ = $1; }
             | expr ',' expr_list_ne { $$ = $1; $$->next = $3; }
             ;
 
-expr: ID                    { $$ = new_id($1, cur_line); }
+expr: ID                    { $$ = new_id($1, @1.first_line); }
     | method_call           { $$ = $1; }
     | literal               { $$ = $1; }
     | expr OR_OP  expr      { $$ = new_binop(OP_OR,  $1, $3, cur_line); }
