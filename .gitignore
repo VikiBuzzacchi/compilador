@@ -4,3 +4,6 @@ parser.tab.c
 parser.tab.h
 .agents
 *.ci
+compilador_dbg
+parser.output
+parser.gv
