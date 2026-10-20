@@ -25,6 +25,18 @@ for input in tests/cases/*.txt; do
     fi
 done
 
+# Código intermedio (etapa 3): compara ./compilador -target codinter con <nombre>.ci.expected
+for expected in tests/expected/*.ci.expected; do
+    name=$(basename "$expected" .ci.expected)
+    "$BIN" -target codinter < "tests/cases/$name.txt" > "$tmp" 2>&1
+
+    if diff -q "$tmp" "$expected" > /dev/null; then
+        echo "PASS   $name (codinter)"; pass=$((pass+1))
+    else
+        echo "FAIL   $name (codinter)"; diff "$expected" "$tmp" | sed 's/^/         /'; fail=$((fail+1))
+    fi
+done
+
 echo
 echo "PASS: $pass  FAIL: $fail"
 [ "$fail" -eq 0 ]

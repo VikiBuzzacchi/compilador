@@ -22,6 +22,8 @@ make clean  # limpia binarios
 
 ```sh
 ./compilador < tests/cases/test1.txt
+./compilador -target codinter tests/cases/test27.txt   # código intermedio (TAC): consola + test27.ci
+./compilador -target codinter < tests/cases/test27.txt # solo consola
 ```
 
 

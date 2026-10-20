@@ -1,0 +1,9 @@
+func begin main
+  m = true
+  x = 1
+  y = 1
+  t0 = 3 * y
+  t1 = x + t0
+  x = t1
+func end main
+

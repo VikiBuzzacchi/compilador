@@ -1,0 +1,5 @@
+func begin main
+  x = 1
+  x_1 = 2
+func end main
+

@@ -1,0 +1,9 @@
+func begin f
+  g = p
+func end f
+
+func begin main
+  param 1
+  call f, 1
+func end main
+

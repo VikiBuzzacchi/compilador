@@ -1,0 +1,18 @@
+int suma(int a, int b) {
+  return a + b;
+}
+void imprimir(int v) {
+  return;
+}
+void main() {
+  int x;
+  x = 3;
+  if (x < 5) {
+    x = suma(x, suma(1, 2));
+  } else {
+    imprimir(x);
+  }
+  while (x > 0) {
+    x = x - 1;
+  }
+}

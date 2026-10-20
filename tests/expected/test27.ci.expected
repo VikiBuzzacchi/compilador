@@ -1,0 +1,44 @@
+func begin main
+  x = 7
+  y = 2.5
+  t0 = x % 3
+  t1 = 4 * 2
+  t2 = t0 + t1
+  t3 = 10 / 5
+  t4 = t2 - t3
+  g = t4
+  t5 = x * 2.5
+  t6 = y / 2
+  t7 = t5 + t6
+  y = t7
+  y = x
+  t8 = -x
+  x = t8
+  t9 = x < 2
+  t10 = y > 1.5
+  t11 = t9 && t10
+  t12 = x == 3
+  t13 = t11 || t12
+  b = t13
+  t14 = !b
+  b = t14
+L0:
+  t15 = x < 10
+  t16 = b == false
+  t17 = t15 && t16
+  ifFalse t17 goto L1
+  t18 = x + 1
+  x = t18
+  goto L0
+L1:
+  t19 = x > 5
+  t20 = !t19
+  t21 = y == 2.5
+  t22 = t20 || t21
+  ifFalse t22 goto L2
+  t23 = x + 1
+  t24 = t23 * 2
+  x = t24
+L2:
+func end main
+

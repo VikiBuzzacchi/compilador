@@ -1,0 +1,6 @@
+func begin main
+  t0 = -2147483646
+  a = t0
+  return a
+func end main
+

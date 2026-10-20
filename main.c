@@ -1,5 +1,5 @@
-#include <stdio.h>
-#include "ast.h"
+#include <string.h>
+#include "intermediate_code.h"
 
 extern int yyparse();
 extern struct node *root;
@@ -9,8 +9,22 @@ extern int semantic_errors;
 extern FILE *yyin;
 
 int main(int argc, char **argv) {
-     if (argc > 1) {
-        yyin = fopen(argv[1], "r");
+    int target_codinter = 0;
+    char *input_filename = NULL;
+
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-target") == 0 && i + 1 < argc) {
+            if (strcmp(argv[i + 1], "codinter") == 0) {
+                target_codinter = 1;
+            }
+            i++;
+        } else if (!input_filename) {
+            input_filename = argv[i];
+        }
+    }
+
+    if (input_filename) {
+        yyin = fopen(input_filename, "r");
         if (!yyin) {
             perror("No se pudo abrir el archivo");
             return 1;
@@ -21,11 +35,32 @@ int main(int argc, char **argv) {
     int ok = yyparse();
 
     if (ok == 0 && lexical_errors == 0 && syntax_errors == 0 && semantic_errors == 0) {
-        printf("\n--- Análisis sintáctico exitoso ---\n");
-        //printf("\n--- Generando Código Pseudo-Assembly ---\n");
-        //gen_code(root);
-        //printf("\n--- Evaluando AST (Intérprete) ---\n");
-        //eval(root);
+        if (target_codinter) {
+            gen_intermediate_code(root, stdout);
+            // Si hay archivo de entrada, también se exporta a <nombre>.ci
+            if (input_filename) {
+                char *base = strrchr(input_filename, '/');
+                base = base ? base + 1 : input_filename;
+                char ci_name[512];
+                snprintf(ci_name, sizeof(ci_name), "%s", base);
+                char *dot = strrchr(ci_name, '.');
+                if (dot) *dot = '\0';
+                strncat(ci_name, ".ci", sizeof(ci_name) - strlen(ci_name) - 1);
+                FILE *ci = fopen(ci_name, "w");
+                if (ci) {
+                    gen_intermediate_code(root, ci);
+                    fclose(ci);
+                } else {
+                    perror("No se pudo crear el archivo .ci");
+                }
+            }
+        } else {
+            printf("\n--- Análisis sintáctico exitoso ---\n");
+            //printf("\n--- Generando Código Pseudo-Assembly ---\n");
+            //gen_code(root);
+            //printf("\n--- Evaluando AST (Intérprete) ---\n");
+            //eval(root);
+        }
     } else {
         printf("\nFallo en el análisis sintáctico.\n");
 

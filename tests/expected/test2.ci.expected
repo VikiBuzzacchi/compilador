@@ -1,0 +1,12 @@
+func begin main
+  x = 1
+  t0 = 3 * y
+  t1 = x + t0
+  x = t1
+  return x
+  y = 4
+  x = 2
+  t2 = y * 2
+  return t2
+func end main
+

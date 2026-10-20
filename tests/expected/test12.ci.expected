@@ -1,0 +1,14 @@
+func begin f
+func end f
+
+func begin g
+  f = 2
+func end g
+
+func begin main
+  call f, 0
+  param x
+  call g, 1
+  x = 1
+func end main
+
