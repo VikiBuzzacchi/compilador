@@ -7,3 +7,5 @@ parser.tab.h
 compilador_dbg
 parser.output
 parser.gv
+*.ass
+*.out

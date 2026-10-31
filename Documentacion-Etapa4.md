@@ -1,0 +1,6 @@
+Decisiones de diseño (cerralas hoy)
+Todo en memoria, sin asignación de registros. Cada variable y cada temporal tN tiene un slot en -off(%rbp). Cada instrucción TAC se traduce con una plantilla fija que usa %rax/%rcx como scratch.
+Entrada del generador: refactorizar la etapa 3. Hoy el TAC se escribe directo a un FILE *, y para la etapa 4 necesitás recorrerlo (por ejemplo, para contar cuántos slots necesita cada función antes de emitir el prólogo). Lo más limpio es guardar las instrucciones en un array/lista (struct tac {op, arg1, arg2, res}) y que -target codinter lo imprima desde ahí. Los .ci.expected te sirven de test de regresión: no deben cambiar.
+Convención de llamadas: System V (args en %rdi, %rsi, %rdx, %rcx, %r8, %r9, resultado en %rax). Los param se acumulan y se mueven a registros en el call. En el prólogo del callee se copian los registros a sus slots.
+Tipos: int y bool como enteros (bool = 0/1). Si el lenguaje tiene float, te recomiendo dejarlo como limitación documentada, porque SSE más la conversión int→float pendiente es mucho trabajo.
+Globales: van en .data/.bss y se acceden con nombre(%rip). La etapa 3 no emitía nada para ellas, así que acá hay que agregarlo. Al traducir un operando, buscás primero en los locales de la función y si no, en globales.
