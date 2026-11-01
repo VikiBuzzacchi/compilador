@@ -151,8 +151,8 @@ method_decl: method_head '(' param_list ')' {
              }
            ;
 
-method_head: type ID    { $$ = declare($2, $1, SYM_METHOD); open_level(); }
-           | VOID ID    { $$ = declare($2, TYPE_VOID, SYM_METHOD); open_level(); }
+method_head: type ID    { $$ = declare($2, $1, SYM_METHOD); current_method = $$; open_level(); }
+           | VOID ID    { $$ = declare($2, TYPE_VOID, SYM_METHOD); current_method = $$; open_level(); }
            ;
 
 param_list: param_list_ne   { $$ = $1; }
@@ -209,7 +209,7 @@ expr_list_ne: expr                  { $$ = $1; }
             ;
 
 expr: ID                    { $$ = new_id($1, @1.first_line); }
-    | method_call           { $$ = $1; }
+    | method_call           { $$ = check_call_value($1); }
     | literal               { $$ = $1; }
     | expr OR_OP  expr      { $$ = new_binop(OP_OR,  $1, $3, cur_line); }
     | expr AND_OP expr      { $$ = new_binop(OP_AND, $1, $3, cur_line); }

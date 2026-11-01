@@ -1,6 +1,9 @@
 compilador: lex.yy.c parser.tab.c ast.c symbol_table.c intermediate_code.c main.c
 	gcc -o compilador lex.yy.c parser.tab.c ast.c symbol_table.c intermediate_code.c object_code.c main.c -lfl
 
+c-tds: compilador
+	cp compilador c-tds
+
 lex.yy.c: lexer.l
 	flex lexer.l
 

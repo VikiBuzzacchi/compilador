@@ -5,7 +5,8 @@ enum sym_type {
     TYPE_VOID,
     TYPE_INT,
     TYPE_BOOL,
-    TYPE_FLOAT
+    TYPE_FLOAT,
+    TYPE_ERROR 
 };
 
 enum sym_kind {

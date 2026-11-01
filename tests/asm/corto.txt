@@ -1,0 +1,11 @@
+int c;
+boolean f() {
+    c = c + 1;
+    return true;
+}
+int main() {
+    boolean b;
+    b = false && f();
+    b = true || f();
+    if (c == 0) { return 0; } else { return 1; }
+}

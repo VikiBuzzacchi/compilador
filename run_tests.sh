@@ -14,7 +14,8 @@ for input in tests/cases/*.txt; do
     name=$(basename "$input" .txt)
     expected="tests/expected/$name.expected"
 
-    "$BIN" < "$input" > "$tmp" 2>&1
+    # -debug: sin esa opción el compilador no imprime el mensaje de éxito
+    "$BIN" -debug < "$input" > "$tmp" 2>&1
 
     if [ ! -f "$expected" ]; then
         echo "FAIL   $name (falta $expected)"; fail=$((fail+1))
@@ -28,7 +29,7 @@ done
 # Código intermedio (etapa 3): compara ./compilador -target codinter con <nombre>.ci.expected
 for expected in tests/expected/*.ci.expected; do
     name=$(basename "$expected" .ci.expected)
-    "$BIN" -target codinter < "tests/cases/$name.txt" > "$tmp" 2>&1
+    "$BIN" -target codinter -debug < "tests/cases/$name.txt" > "$tmp" 2>&1
 
     if diff -q "$tmp" "$expected" > /dev/null; then
         echo "PASS   $name (codinter)"; pass=$((pass+1))

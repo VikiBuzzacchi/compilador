@@ -74,4 +74,10 @@ struct node *new_call(char *name, struct node *args, int line);
 // Imprime el árbol indentado
 void print_ast(struct node *t);
 
+// Método que se está analizando (lo fija parser.y en method_head); lo usa new_return
+extern struct symbol *current_method;
+
+// Una llamada usada como expresión debe devolver valor (regla 5)
+struct node *check_call_value(struct node *call);
+
 #endif
