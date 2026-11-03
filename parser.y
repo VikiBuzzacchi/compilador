@@ -70,6 +70,9 @@ static void check_main(void) {
     } else if (m->nparams != 0) {
         semantic_errors++;
         fprintf(stderr, "Error semántico: 'main' no debe tener parámetros\n");
+    } else if (m->is_extern) {
+        semantic_errors++;
+        fprintf(stderr, "Error semántico: 'main' no puede ser extern\n");
     }
 }
 %}
@@ -90,14 +93,14 @@ static void check_main(void) {
 %token <val> CONSTINT
 %token <fval> CONSTFLOAT
 %token RETURN VOID
-%token ELSE IF WHILE FLOAT
+%token ELSE IF WHILE FLOAT EXTERN
 %token OR_OP AND_OP EQ_OP
 
 
 %type <type> type
 %type <sym> method_head
 %type <ast> var_decl_list var_decl id_list method_decl_list method_decl
-%type <ast> param_list param_list_ne block block_item_list block_item statement
+%type <ast> param_list param_list_ne method_body block block_item_list block_item statement
 %type <ast> method_call expr_list expr_list_ne expr literal bool_literal
 
 /* Precedencia de operadores */
@@ -145,10 +148,16 @@ method_decl: method_head '(' param_list ')' '{' block_item_list '}' {
 method_decl: method_head '(' param_list ')' {
                  set_signature($1, $3);
              }
-             '{' block_item_list '}' {
-                 $$ = new_method_decl($1, $3, new_block($7, cur_line), cur_line);
+             method_body {
+                 $$ = new_method_decl($1, $3, $6, cur_line);
+                 if ($1 && !$6) $1->is_extern = 1;
                  close_level();
              }
+           ;
+
+/* Cuerpo del método, o extern si está definido afuera (en C). Sin cuerpo: NULL */
+method_body: '{' block_item_list '}'    { $$ = new_block($2, cur_line); }
+           | EXTERN ';'                 { $$ = NULL; }
            ;
 
 method_head: type ID    { $$ = declare($2, $1, SYM_METHOD); current_method = $$; open_level(); }

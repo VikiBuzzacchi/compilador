@@ -33,12 +33,54 @@ El lexer limita los literales a 32 bits (`2147483647`), pero el assembly calcula
 **Solución (`run_tests.sh`):** ahora también recorre `tests/asm/*.txt`. Por cada uno compila, ejecuta y compara el exit code con el valor de la primera línea `// exit: N`. Los tests sin esa línea se saltean. Se agregó `// exit:` a los tests existentes, con valores verificados contra gcc, y un test nuevo: int32.
 Antes de la corrección 2, test int32 fallaba con `exit 1`. Ahora pasan los 45 tests.
 
+## Métodos `extern`
+
+Un método declarado con `extern` en lugar de cuerpo está definido afuera en C, y se enlaza al generar el ejecutable:
+
+```c
+int suma3(int a, int b, int c) extern;
+boolean esPar(int x) extern;
+int abs(int x) extern;          // también funciones de la biblioteca estándar
+```
+
+```sh
+./compilador programa.txt lib.c -o programa    # lib.c (o .o, .s) define los extern
+```
+
+**Cambios:**
+- **`lexer.l`:** palabra reservada `extern` (token `EXTERN`).
+- **`parser.y`:** nueva regla `method_body`: `'{' block_item_list '}'` o `EXTERN ';'`. En el caso `extern` el método queda con cuerpo `NULL` y se marca `is_extern` en su símbolo. Los parámetros se declaran igual que en un método normal, así que los chequeos de cantidad y tipo de argumentos en las llamadas no cambian.
+- **`symbol_table.h/.c`:** campo `is_extern` en `struct symbol`.
+- **Semántica:** `main` no puede ser `extern` (`'main' no puede ser extern`).
+- **`intermediate_code.c`:** `build_tac` saltea los métodos sin cuerpo. Los `extern` no generan `func begin`/`func end` y solo aparecen en los `call`.
+- **`object_code.c`:** sin cambios.
+- **`main.c`:** los argumentos que no son opciones después del archivo de entrada se guardan y se pasan al `gcc` que enlaza: `gcc -o out -x assembler prog.ass -x none lib.c`. El `-x none` es necesario porque `-x assembler` se aplica a todos los archivos que siguen. Se agrandó el buffer del comando a 4096.
+- **`run_tests.sh`:** la línea `// link: archivos` de un test de `tests/asm/` indica qué archivos enlazar.
+
+**Tests:**
+
+| Archivo | Qué prueba |
+|---|---|
+| `tests/asm/extern.txt` + `lib.c` | `int` negativo devuelto por C, `bool` de C, argumentos que son expresiones y llamadas (`suma3(doble(2), neg(), 1 + 1)`), `abs` de libc. Exit esperado 0 |
+| `tests/cases/test29error.txt` | `int main() extern;` → error semántico |
+| `tests/cases/test30.txt` | Programa válido con `extern`; su `.ci` no tiene `func begin` para los extern |
+| `tests/cases/test31error.txt` | Llamada a un `extern` con cantidad de argumentos incorrecta |
+
+Para comprobar que `extern.txt` detecta el problema de la corrección 2, se sacaron del assembly los `movslq %eax`/`movzbq %al`: el test falla con `exit 1`. 
+
+## Tests de valores con `printInt` / `printBool`
+
+El exit code permite chequear un solo valor por test, entre 0 y 255. Con `extern`, un test puede imprimir todos los resultados intermedios con funciones C y comparar la salida completa.
+
+- **`tests/asm/lib.c`:** agrega `void printInt(int)` y `void printBool(bool)`.
+```c
+printInt(resta(y * 2, y - 3));              // expect: 13
+printBool(!(x == 3) || x < 4 && true);      // expect: true
+```
+
 ## Pendientes
 
-- **`extern`**: palabra reservada, regla en el parser, saltear el cuerpo en el TAC y enlazar archivos C extra desde `main.c`.
-- **Test de funciones C externas:** la normalización del resultado de `call` se probó a mano. Cuando exista `extern`, agregar un test que enlace una función C que devuelva un negativo.
 - **Plegado y propagación de constantes.**
 - **Eliminación de código inalcanzable** (después de `return`/`goto`, ramas de `if (false)`).
 - **Reutilización de slots de temporales** (lista de offsets libres).
-- **Tests de llamadas con parámetros que son expresiones.**
 - **`float` no soportado** en el generador de assembly (los literales se cargan como 0).

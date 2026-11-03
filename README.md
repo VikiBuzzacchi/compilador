@@ -24,6 +24,7 @@ make clean  # limpia binarios
 ./compilador < tests/cases/test1.txt
 ./compilador -target codinter tests/cases/test27.txt   # código intermedio (TAC): consola + test27.ci
 ./compilador -target codinter < tests/cases/test27.txt # solo consola
+./compilador tests/asm/extern.txt tests/asm/lib.c -o prog  # enlaza lib.c, que define los métodos extern
 ```
 
 

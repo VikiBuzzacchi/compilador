@@ -33,6 +33,7 @@ int main(int argc, char **argv) {
     int debug = 0;
     char *input_filename = NULL;
     char *exe_name = NULL;          /* valor de -o */
+    char link_files[1024] = "";     /* archivos extra (.c, .o, .s) para enlazar: definen los extern */
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-target") == 0 && i + 1 < argc) {
@@ -46,6 +47,9 @@ int main(int argc, char **argv) {
             debug = 1;
         } else if (argv[i][0] != '-' && !input_filename) {
             input_filename = argv[i];
+        } else if (argv[i][0] != '-') {
+            strncat(link_files, " ", sizeof(link_files) - strlen(link_files) - 1);
+            strncat(link_files, argv[i], sizeof(link_files) - strlen(link_files) - 1);
         }
     }
 
@@ -102,8 +106,10 @@ int main(int argc, char **argv) {
                 if (exe_name) snprintf(out_name, sizeof(out_name), "%s", exe_name);
                 else make_out_name(input_filename, ".out", out_name, sizeof(out_name));
 
-                char cmd[2048];
-                snprintf(cmd, sizeof(cmd), "gcc -x assembler -o %s %s", out_name, ass_name);
+                char cmd[4096];
+                /* -x none: los archivos extra se compilan según su extensión */
+                snprintf(cmd, sizeof(cmd), "gcc -o %s -x assembler %s -x none%s",
+                         out_name, ass_name, link_files);
                 if (system(cmd) != 0) {
                     fprintf(stderr, "Error al ensamblar %s\n", ass_name);
                     return 1;

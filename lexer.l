@@ -29,6 +29,7 @@
 
 "boolean"   { return BOOLEAN; }
 "else"      { return ELSE; }
+"extern"    { return EXTERN; }
 "false"     { return FALSE; }
 "if"        { return IF; }
 "int"       { return INT; }

@@ -1,0 +1,74 @@
+// exit: 0
+// link: tests/asm/lib.c
+// Imprime resultados con printInt/printBool; el comentario expect de cada línea es el valor que debe imprimir.
+int g;
+
+void printInt(int x) extern;
+void printBool(boolean b) extern;
+
+int fib(int n) {
+    if (n < 2) { return n; }
+    return fib(n - 1) + fib(n - 2);
+}
+int inc() {
+    g = g + 1;
+    return g;
+}
+int resta(int a, int b) { return a - b; }
+
+int main() {
+    int x;
+    int y;
+    boolean b;
+
+    // aritmética y precedencia
+    printInt(2 + 3 * 4);                        // expect: 14
+    printInt((2 + 3) * 4);                      // expect: 20
+    printInt(10 - 4 - 3);                       // expect: 3
+    printInt(-5 + 2);                           // expect: -3
+
+    // división y resto con negativos (truncan hacia 0, como C)
+    x = -7;
+    printInt(x / 2);                            // expect: -3
+    printInt(x % 2);                            // expect: -1
+    printInt(7 / -2);                           // expect: -3
+
+    // overflow de 32 bits
+    x = 2147483647;
+    printInt(x + 1);                            // expect: -2147483648
+    x = 65536;
+    printInt(x * x);                            // expect: 0
+
+    // comparaciones y lógica
+    x = 3;
+    printBool(x < 5);                           // expect: true
+    printBool(x > 5);                           // expect: false
+    printBool(x == 3);                          // expect: true
+    printBool(!(x == 3) || x < 4 && true);      // expect: true
+
+    // cortocircuito: inc() no se llama si no hace falta
+    g = 0;
+    b = false && inc() == 1;
+    b = true || inc() == 1;
+    printInt(g);                                // expect: 0
+    b = true && inc() == 1;
+    printInt(g);                                // expect: 1
+
+    // llamadas con expresiones como argumentos y orden de los parámetros
+    y = 10;
+    printInt(resta(y * 2, y - 3));              // expect: 13
+    printInt(resta(resta(10, 3), resta(1, 5))); // expect: 11
+
+    // recursión
+    printInt(fib(10));                          // expect: 55
+
+    // while
+    x = 0;
+    y = 0;
+    while (x < 5) {
+        y = y + x;
+        x = x + 1;
+    }
+    printInt(y);                                // expect: 10
+    return 0;
+}

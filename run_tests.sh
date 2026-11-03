@@ -8,7 +8,8 @@ BIN=./compilador
 
 pass=0; fail=0
 tmp=$(mktemp)
-trap 'rm -f "$tmp"' EXIT
+expected_out=$(mktemp)
+trap 'rm -f "$tmp" "$expected_out"' EXIT
 
 for input in tests/cases/*.txt; do
     name=$(basename "$input" .txt)
@@ -38,24 +39,34 @@ for expected in tests/expected/*.ci.expected; do
     fi
 done
 
-# Código objeto (etapa 4): compila, ejecuta y compara el exit code con "// exit: N" (primera línea)
+# Código objeto (etapa 4): compila y ejecuta cada tests/asm/*.txt. Se chequea:
+#   "// exit: N"       el exit code
+#   "// expect: valor" la salida, una línea por valor y en orden (impresa con printInt/printBool);
+#                      puede ir al final de la línea del print: printInt(x);  // expect: 3
+# Un test sin ninguna de las dos no se chequea.
 for input in tests/asm/*.txt; do
     name=$(basename "$input" .txt)
     want=$(sed -n 's|^// exit: *\([0-9]*\).*|\1|p' "$input" | head -1)
-    [ -n "$want" ] || continue                     # sin "// exit:" no se chequea
+    sed -n 's|.*// expect: *||p' "$input" > "$expected_out"
+    [ -n "$want" ] || [ -s "$expected_out" ] || continue
+
+    links=$(sed -n 's|^// link: *||p' "$input")      # archivos C que definen los extern
 
     exe=$(mktemp)
-    if ! "$BIN" "$input" -o "$exe" > "$tmp" 2>&1; then
+    if ! "$BIN" "$input" $links -o "$exe" > "$tmp" 2>&1; then
         echo "FAIL   $name (asm: no compila)"; sed 's/^/         /' "$tmp"; fail=$((fail+1))
         rm -f "$exe" "$name.ass"; continue
     fi
-    "$exe"; got=$?
+    "$exe" > "$tmp"; got=$?
     rm -f "$exe" "$name.ass"
 
-    if [ "$got" -eq "$want" ]; then
-        echo "PASS   $name (asm)"; pass=$((pass+1))
-    else
+    if [ -n "$want" ] && [ "$got" -ne "$want" ]; then
         echo "FAIL   $name (asm): exit $got, esperado $want"; fail=$((fail+1))
+    elif [ -s "$expected_out" ] && ! diff -q "$expected_out" "$tmp" > /dev/null; then
+        echo "FAIL   $name (asm): salida distinta (< esperado, > obtenido)"
+        diff "$expected_out" "$tmp" | sed 's/^/         /'; fail=$((fail+1))
+    else
+        echo "PASS   $name (asm)"; pass=$((pass+1))
     fi
 done
 

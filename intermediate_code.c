@@ -353,7 +353,7 @@ struct tac *build_tac(struct node *root)
 
     for (struct node *m = root->right; m; m = m->next)
     {
-        if (m->kind == NODE_METHOD_DECL)
+        if (m->kind == NODE_METHOD_DECL && m->left)   /* los extern no tienen cuerpo */
             gen_method(m);
     }
     return head;

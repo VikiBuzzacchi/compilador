@@ -1,0 +1,8 @@
+int suma(int a, int b) extern;
+void imprimir(int x) extern;
+int main() {
+    int x;
+    x = suma(1, 2 * 3);
+    imprimir(x);
+    return x;
+}

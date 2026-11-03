@@ -24,6 +24,7 @@ struct symbol {
     enum sym_type *param_types;
     int value;
     int is_global;
+    int is_extern;          /* método declarado con extern (sin cuerpo) */
     struct symbol *next;
 };
 

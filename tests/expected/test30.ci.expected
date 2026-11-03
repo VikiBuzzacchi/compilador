@@ -1,0 +1,11 @@
+func begin main
+  t0 = 2 * 3
+  param 1
+  param t0
+  t1 = call suma, 2
+  x = t1
+  param x
+  call imprimir, 1
+  return x
+func end main
+

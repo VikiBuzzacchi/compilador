@@ -45,6 +45,7 @@ struct symbol *insert_symbol(char *name, enum sym_type type, enum sym_kind kind)
     s->param_types = NULL;
     s->value = 0;
     s->is_global = (top->prev == NULL);
+    s->is_extern = 0;
     s->next = top->symbols;
     top->symbols = s;
     return s;
