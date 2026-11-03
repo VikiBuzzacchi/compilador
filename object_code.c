@@ -1,7 +1,8 @@
 /* object_code.c - Generador de código objeto: TAC -> assembly x86-64 (AT&T).
    Cada variable local, parámetro y temporal tiene un slot de
    8 bytes en la pila. Cada instrucción TAC carga de la pila a %r10/%r11,
-   opera y guarda el resultado de vuelta en la pila. */
+   opera y guarda el resultado de vuelta en la pila. Los int son de 32 bits:
+   en el slot se guardan extendidos en signo a 64 (movslq). */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -109,6 +110,10 @@ static void gen_binop(struct tac *i) {
         case OP_OR:  fprintf(out, "    orq %%r11, %%r10\n"); break;
         default: break;
     }
+    /* int es de 32 bits: el resultado aritmético se trunca y se extiende el signo (wrap como en C) */
+    if (i->bop == OP_ADD || i->bop == OP_SUB || i->bop == OP_MUL ||
+        i->bop == OP_DIV || i->bop == OP_MOD)
+        fprintf(out, "    movslq %%r10d, %%r10\n");
     store("%r10", &i->res);
 }
 
@@ -129,7 +134,14 @@ static void gen_call(struct tac *i) {
     fprintf(out, "    call %s\n", i->label);
     if (nstack * 8 + pad > 0)
         fprintf(out, "    addq $%d, %%rsp\n", nstack * 8 + pad);
-    if (i->has_result) store("%rax", &i->res);
+    if (i->has_result) {
+        /* Una función C deja int solo en %eax y bool solo en %al: se normaliza a 64 bits */
+        if (i->func && i->func->type == TYPE_BOOL)
+            fprintf(out, "    movzbq %%al, %%rax\n");
+        else
+            fprintf(out, "    movslq %%eax, %%rax\n");
+        store("%rax", &i->res);
+    }
     npending = 0;
 }
 
@@ -144,7 +156,7 @@ static void gen_instr(struct tac *i) {
             break;
         case TAC_UNOP:
             load(&i->a, "%r10");
-            if (i->bop == OP_NEG) fprintf(out, "    negq %%r10\n");
+            if (i->bop == OP_NEG) fprintf(out, "    negq %%r10\n    movslq %%r10d, %%r10\n");
             else                  fprintf(out, "    xorq $1, %%r10\n");   /* ! sobre 0/1 */
             store("%r10", &i->res);
             break;

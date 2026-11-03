@@ -38,6 +38,27 @@ for expected in tests/expected/*.ci.expected; do
     fi
 done
 
+# Código objeto (etapa 4): compila, ejecuta y compara el exit code con "// exit: N" (primera línea)
+for input in tests/asm/*.txt; do
+    name=$(basename "$input" .txt)
+    want=$(sed -n 's|^// exit: *\([0-9]*\).*|\1|p' "$input" | head -1)
+    [ -n "$want" ] || continue                     # sin "// exit:" no se chequea
+
+    exe=$(mktemp)
+    if ! "$BIN" "$input" -o "$exe" > "$tmp" 2>&1; then
+        echo "FAIL   $name (asm: no compila)"; sed 's/^/         /' "$tmp"; fail=$((fail+1))
+        rm -f "$exe" "$name.ass"; continue
+    fi
+    "$exe"; got=$?
+    rm -f "$exe" "$name.ass"
+
+    if [ "$got" -eq "$want" ]; then
+        echo "PASS   $name (asm)"; pass=$((pass+1))
+    else
+        echo "FAIL   $name (asm): exit $got, esperado $want"; fail=$((fail+1))
+    fi
+done
+
 echo
 echo "PASS: $pass  FAIL: $fail"
 [ "$fail" -eq 0 ]

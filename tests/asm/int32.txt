@@ -1,0 +1,28 @@
+// exit: 0
+// Chequea que int sea de 32 bits (overflow con wraparound, como en C).
+// Devuelve 0 si todo está bien, o el número del chequeo que falló.
+int main() {
+    int x;
+
+    // 1: el máximo + 1 da la vuelta al mínimo (negativo)
+    x = 2147483647;
+    x = x + 1;
+    if (!(x < 0)) { return 1; }
+
+    // 2: el mínimo - 1 da la vuelta al máximo (positivo)
+    x = -2147483647;
+    x = x - 2;
+    if (!(x > 0)) { return 2; }
+
+    // 3: 65536 * 65536 = 2^32, que en 32 bits es 0
+    x = 65536;
+    x = x * x;
+    if (!(x == 0)) { return 3; }
+
+    // 4: el resultado con overflow tiene que compararse igual que una constante
+    x = 2147483647;
+    x = x + 1;
+    if (!(x == -2147483647 - 1)) { return 4; }
+
+    return 0;
+}

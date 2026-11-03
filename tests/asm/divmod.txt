@@ -1,3 +1,4 @@
+// exit: 13
 int main() {
     int a;
     int b;

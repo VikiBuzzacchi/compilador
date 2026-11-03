@@ -34,6 +34,7 @@ make test          # o ./run_tests.sh
 ```
 
 Corre cada `tests/cases/*.txt` y compara la salida (stdout y stderr) con `tests/expected/<nombre>.expected`.
+Además compila y ejecuta cada `tests/asm/*.txt` y compara el exit code con su primera línea `// exit: N`.
 Cada test pasa (`PASS`) o falla (`FAIL`).
 
 ### Archivos de prueba incluidos
