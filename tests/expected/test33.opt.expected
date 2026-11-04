@@ -1,0 +1,48 @@
+func begin inc
+  t0 = g + 1
+  g = t0
+  return g
+func end inc
+
+func begin doble
+  t1 = n * 2
+  return t1
+func end doble
+
+func begin main
+  a = 10
+  b = 20
+  c = 30
+  param 30
+  t4 = call doble, 1
+  x = t4
+  a = 31
+  g = 5
+  t6 = call inc, 0
+  t7 = g + 1
+  a = t7
+  b = 1
+  t8 = x > 3
+  ifFalse t8 goto L0
+  b = 2
+L0:
+  c = b
+  x = 0
+L1:
+  t9 = x < 5
+  ifFalse t9 goto L2
+  t10 = x + 1
+  x = t10
+  goto L1
+L2:
+  c = x
+  b = 7
+  b_1 = 3
+  c = 4
+  c = 8
+  a = 0
+  t13 = 7 / 0
+  c = t13
+  return c
+func end main
+

@@ -3,7 +3,12 @@
 # Cada test pasa (PASS) o falla (FAIL). Termina con código distinto de 0 si alguno falla.
 
 cd "$(dirname "$0")" || exit 1
-BIN=./compilador
+# BIN se puede cambiar para probar otro compilador: BIN=/ruta/compilador ./run_tests.sh
+BIN=${BIN:-./compilador}
+# Tiempo límite (segundos) para compilar y para ejecutar cada programa: un ciclo infinito,
+# en el compilador o en el programa generado, da FAIL en vez de colgar los tests
+TIME_COMPILE=10
+TIME_RUN=5
 [ -x "$BIN" ] || { echo "No existe $BIN. Ejecutar 'make' primero."; exit 1; }
 
 pass=0; fail=0
@@ -16,7 +21,7 @@ for input in tests/cases/*.txt; do
     expected="tests/expected/$name.expected"
 
     # -debug: sin esa opción el compilador no imprime el mensaje de éxito
-    "$BIN" -debug < "$input" > "$tmp" 2>&1
+    timeout $TIME_COMPILE "$BIN" -debug < "$input" > "$tmp" 2>&1
 
     if [ ! -f "$expected" ]; then
         echo "FAIL   $name (falta $expected)"; fail=$((fail+1))
@@ -30,7 +35,7 @@ done
 # Código intermedio (etapa 3): compara ./compilador -target codinter con <nombre>.ci.expected
 for expected in tests/expected/*.ci.expected; do
     name=$(basename "$expected" .ci.expected)
-    "$BIN" -target codinter -debug < "tests/cases/$name.txt" > "$tmp" 2>&1
+    timeout $TIME_COMPILE "$BIN" -target codinter -debug < "tests/cases/$name.txt" > "$tmp" 2>&1
 
     if diff -q "$tmp" "$expected" > /dev/null; then
         echo "PASS   $name (codinter)"; pass=$((pass+1))
@@ -43,7 +48,7 @@ done
 for expected in tests/expected/*.opt.expected; do
     [ -f "$expected" ] || continue
     name=$(basename "$expected" .opt.expected)
-    "$BIN" -target codinter -opt all -debug < "tests/cases/$name.txt" > "$tmp" 2>&1
+    timeout $TIME_COMPILE "$BIN" -target codinter -opt all -debug < "tests/cases/$name.txt" > "$tmp" 2>&1
 
     if diff -q "$tmp" "$expected" > /dev/null; then
         echo "PASS   $name (opt)"; pass=$((pass+1))
@@ -73,7 +78,7 @@ for input in tests/asm/*.txt; do
     # Test de error: no tiene que compilar
     if [ -n "$errmsg" ]; then
         rm -f "$name.ass"
-        if "$BIN" $mode "$input" $links -o "$tmp.out" > "$tmp" 2>&1; then
+        if timeout $TIME_COMPILE "$BIN" $mode "$input" $links -o "$tmp.out" > "$tmp" 2>&1; then
             echo "FAIL   $name ($label): compiló, se esperaba el error \"$errmsg\""; fail=$((fail+1))
         elif ! grep -qF "$errmsg" "$tmp"; then
             echo "FAIL   $name ($label): falló sin el mensaje \"$errmsg\""; sed 's/^/         /' "$tmp"; fail=$((fail+1))
@@ -86,14 +91,16 @@ for input in tests/asm/*.txt; do
     fi
 
     exe=$(mktemp)
-    if ! "$BIN" $mode "$input" $links -o "$exe" > "$tmp" 2>&1; then
+    if ! timeout $TIME_COMPILE "$BIN" $mode "$input" $links -o "$exe" > "$tmp" 2>&1; then
         echo "FAIL   $name ($label: no compila)"; sed 's/^/         /' "$tmp"; fail=$((fail+1))
         rm -f "$exe" "$name.ass"; continue
     fi
-    "$exe" > "$tmp"; got=$?
+    timeout $TIME_RUN "$exe" > "$tmp"; got=$?
     rm -f "$exe" "$name.ass"
 
-    if [ -n "$want" ] && [ "$got" -ne "$want" ]; then
+    if [ "$got" -eq 124 ]; then
+        echo "FAIL   $name ($label): no terminó en ${TIME_RUN} s (¿ciclo infinito?)"; fail=$((fail+1))
+    elif [ -n "$want" ] && [ "$got" -ne "$want" ]; then
         echo "FAIL   $name ($label): exit $got, esperado $want"; fail=$((fail+1))
     elif [ -s "$expected_out" ] && ! diff -q "$expected_out" "$tmp" > /dev/null; then
         echo "FAIL   $name ($label): salida distinta (< esperado, > obtenido)"

@@ -1,0 +1,81 @@
+// exit: 0
+// link: tests/asm/lib.c
+// Propagación de constantes: cada caso da un resultado distinto si la propagación
+// "recuerda" un valor que ya no es válido. Corre sin optimizar y con -opt all.
+int g;
+
+void printInt(int x) extern;
+void printBool(boolean b) extern;
+
+int inc() {
+    g = g + 1;
+    return g;
+}
+int doble(int n) {
+    return n * 2;
+}
+
+int main() {
+    int a;
+    int b;
+    int c;
+    int x;
+    int y;
+    boolean t;
+
+    // cadena: cada constante produce la siguiente
+    a = 10;
+    b = a * 2;
+    c = b + a;
+    printInt(c);                                // expect: 30
+    printInt(doble(c));                         // expect: 60
+
+    // una llamada no modifica las locales: c sigue valiendo 30
+    printInt(c + 1);                            // expect: 31
+
+    // una llamada sí puede modificar las globales: hay que olvidar g
+    g = 5;
+    inc();
+    printInt(g);                                // expect: 6
+    // la global se lee justo después de la llamada, en la misma expresión:
+    // inc() deja g en 6, así que 6 + 6; con el valor viejo de g daría 6 + 5 = 11
+    g = 5;
+    printInt(inc() + g);                        // expect: 12
+
+    // if: después de la etiqueta no se sabe qué rama se ejecutó
+    b = 1;
+    if (doble(1) > 5) {
+        b = 2;
+    }
+    printInt(b);                                // expect: 1
+
+    // while: el valor de antes del ciclo no vale adentro ni después
+    x = 0;
+    y = 0;
+    while (x < 3) {
+        y = y + 10;
+        x = x + 1;
+    }
+    printInt(y);                                // expect: 30
+    printInt(x);                                // expect: 3
+
+    // variables con el mismo nombre en bloques distintos son distintas
+    b = 7;
+    {
+        int b;
+        b = 3;
+        printInt(b + 1);                        // expect: 4
+    }
+    printInt(b + 1);                            // expect: 8
+
+    // wrap de 32 bits también al propagar
+    x = 2147483647;
+    y = x + 1;
+    printInt(y);                                // expect: -2147483648
+
+    // booleanos
+    t = true;
+    t = !t;
+    printBool(t);                               // expect: false
+    return 0;
+}

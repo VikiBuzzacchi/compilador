@@ -1,0 +1,42 @@
+int g;
+int inc() {
+    g = g + 1;
+    return g;
+}
+int doble(int n) {
+    return n * 2;
+}
+int main() {
+    int a;
+    int b;
+    int c;
+    int x;
+    a = 10;
+    b = a * 2;
+    c = b + a;
+    x = doble(c);
+    a = c + 1;
+    g = 5;
+    inc();
+    a = g + 1;
+    b = 1;
+    if (x > 3) {
+        b = 2;
+    }
+    c = b;
+    x = 0;
+    while (x < 5) {
+        x = x + 1;
+    }
+    c = x;
+    b = 7;
+    {
+        int b;
+        b = 3;
+        c = b + 1;
+    }
+    c = b + 1;
+    a = 0;
+    c = 7 / a;
+    return c;
+}

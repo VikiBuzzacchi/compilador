@@ -33,7 +33,7 @@ El lexer limita los literales a 32 bits (`2147483647`), pero el assembly calcula
 **Solución (`run_tests.sh`):** ahora también recorre `tests/asm/*.txt`. Por cada uno compila, ejecuta y compara el exit code con el valor de la primera línea `// exit: N`. Los tests sin esa línea se saltean. Se agregó `// exit:` a los tests existentes, con valores verificados contra gcc, y un test nuevo: int32.
 Antes de la corrección 2, test int32 fallaba con `exit 1`. Ahora pasan los 45 tests.
 
-## Métodos `extern`
+### Métodos `extern`
 
 Un método declarado con `extern` en lugar de cuerpo está definido afuera en C, y se enlaza al generar el ejecutable:
 
@@ -68,7 +68,7 @@ int abs(int x) extern;          // también funciones de la biblioteca estándar
 
 Para comprobar que `extern.txt` detecta el problema de la corrección 2, se sacaron del assembly los `movslq %eax`/`movzbq %al`: el test falla con `exit 1`. 
 
-## Tests de valores con `printInt` / `printBool`
+### Tests de valores con `printInt` / `printBool`
 
 El exit code permite chequear un solo valor por test, entre 0 y 255. Con `extern`, un test puede imprimir todos los resultados intermedios con funciones C y comparar la salida completa.
 
@@ -95,7 +95,7 @@ c-tds -target codinter -opt all prog.ctds         # escribe prog.opt (TAC optimi
 | Nombre | Optimización | Sobre | Estado |
 |---|---|---|---|
 | `constfold` | Plegado de constantes (`2 * 3` → `6`) | AST | **implementada** |
-| `constprop` | Propagación de constantes (`x = 3; y = x + 1` → `y = 4`) | TAC | pendiente |
+| `constprop` | Propagación de constantes (`x = 3; y = x + 1` → `y = 4`) | TAC | **implementada** |
 | `deadcode` | Eliminación de código inalcanzable | TAC | pendiente |
 | `tempslots` | Reutilización de slots de temporales | código objeto | pendiente |
 
@@ -160,7 +160,7 @@ b = !(1 == 2);        →   b = true
 x = x * (2 + 2);      →   x = x * 4         (se pliega solo la parte constante)
 ```
 
-En el TAC de `tests/cases/test32.txt`, `main` pasa de 62 a 24 instrucciones (`test32.ci` vs `test32.opt`):
+En el TAC de `tests/cases/test32.txt`, `main` pasa de 53 a 24 instrucciones (sin contar etiquetas) (`test32.ci` vs `test32.opt`):
 
 ```
 sin optimizar           con -opt all
@@ -215,6 +215,32 @@ sin optimizar           con -opt all
 | `tests/asm/plegado.txt` | Los resultados al ejecutar: wrap, `INT_MIN`, `INT_MIN / -1`, división con negativos, lógica entre literales y cortocircuito con llamadas (cuenta las llamadas a `inc()`). Corre sin optimizar y con `-opt all` y los dos modos tienen que coincidir |
 | `valores`, `corto`, `int32`, ... (existentes) | Corren también con `-opt all` y siguen dando lo mismo |
 
+## Propagación de constantes (`-opt constprop`)
+
+**Qué hace.** Si una variable tiene un valor conocido en un punto del programa, la reemplaza por ese valor, y calcula las operaciones que quedan con todos sus operandos constantes. Las constantes se encadenan:
+
+```c
+a = 10;
+b = a * 2;      →  b = 20
+c = b + a;      →  c = 30
+```
+
+**Dónde: en el TAC.** Necesita seguir las instrucciones en el orden en que se ejecutan y ver los saltos (etiquetas, `goto`, `ifFalse`), que en el TAC están explícitos. Como el plegado del AST ya pasó, la propagación también tiene que calcular.
+
+- Se centraliza la logica en `eval_binop` / `eval_unop` (`optimizer.c`), que usan las dos optimizaciones
+- En cada instrucción la propagación necesita saber si una variable tiene un valor conocido en ese punto. Para eso mantiene una tabla, `known[]`, de pares `(variable o temporal, valor)`. Las variables se identifican por símbolo.
+- Después de propagar quedan instrucciones como `t0 = 20` que nadie lee. Además de sobrar, le ocupan un slot de pila al generador de assembly. La función marca en un arreglo `read[]` cada temporal que aparece como operando en alguna instrucción, y desengancha de la lista las asignaciones a temporales no marcados.
+
+LIMITACIÓN: Al ser local, pierde información que una versión global conservaría. Después de `if (c) { x = 1; } else { x = 1; }`, `x` vale 1 por los dos caminos, pero la tabla se vacía en la etiqueta y `x` no se propaga. Resolverlo requiere análisis de flujo de datos.
+
+
+| Regla rota | Resultado |
+|---|---|
+| No vaciar la tabla en las etiquetas | 4 FAIL; `propagacion` y `valores` con `-opt all` **no terminan** (el `while` queda con `ifFalse true`) y el runner los corta por tiempo |
+| No olvidar las globales en los `call` | 4 FAIL; `propagacion` imprime `5` y `11` en vez de `6` y `12` |
+
+**Runner.** `run_tests.sh` tiene tiempo límite: 10 s para compilar y 5 s para ejecutar cada programa. Un ciclo infinito (en el compilador o en el programa generado) da `FAIL ... no terminó en 5 s` en vez de colgar todos los tests. `BIN` se puede cambiar para correr los tests contra otro compilador.
+
 
 ## `float` en la generación de código: error en lugar de código incorrecto
 
@@ -245,8 +271,6 @@ El compilador termina con código 1 y no genera `.ass` ni `.out`. El análisis (
 
 
 ## Pendientes
-
-- **Propagación de constantes.**
 - **Eliminación de código inalcanzable** (después de `return`/`goto`, ramas de `if (false)`).
 - **Reutilización de slots de temporales** (lista de offsets libres).
 
