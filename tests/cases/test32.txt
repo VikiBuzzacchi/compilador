@@ -1,3 +1,4 @@
+// opt: constfold
 int f() {
     return 1;
 }

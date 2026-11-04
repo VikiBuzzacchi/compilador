@@ -1,3 +1,4 @@
+// opt: constprop
 int g;
 int inc() {
     g = g + 1;

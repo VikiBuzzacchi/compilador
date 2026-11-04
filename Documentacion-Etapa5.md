@@ -150,6 +150,13 @@ PASS   valores (asm)
 PASS   valores (asm -opt all)
 ```
 
+**Cada test de TAC prueba solo sus optimizaciones.** La primera línea del test indica cuáles (sin esa línea se usa `all`):
+
+```c
+// opt: constfold
+```
+El runner compila con `-target codinter -opt <lista>` y compara con `X.opt.expected`. Así, agregar una optimización nueva (con su propio test) no cambia los esperados de las anteriores: `test32` usa `// opt: constfold` y `test33` usa `// opt: constprop`.
+
 ## Plegado de constantes (`-opt constfold`)
 
 **Qué hace.** Calcula en tiempo de compilación las operaciones cuyos operandos son literales y las reemplaza por el resultado. Así el programa ya no las calcula cada vez que se ejecuta.

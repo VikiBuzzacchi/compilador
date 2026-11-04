@@ -44,16 +44,20 @@ for expected in tests/expected/*.ci.expected; do
     fi
 done
 
-# Código intermedio optimizado: compara ./compilador -target codinter -opt all con <nombre>.opt.expected
+# Código intermedio optimizado: compara ./compilador -target codinter -opt <lista> con <nombre>.opt.expected.
+# La lista sale de la línea "// opt: constfold,constprop" del test (sin esa línea: all).
+# Cada test prueba solo sus optimizaciones: agregar una optimización nueva no cambia los esperados de los anteriores.
 for expected in tests/expected/*.opt.expected; do
     [ -f "$expected" ] || continue
     name=$(basename "$expected" .opt.expected)
-    timeout $TIME_COMPILE "$BIN" -target codinter -opt all -debug < "tests/cases/$name.txt" > "$tmp" 2>&1
+    optlist=$(sed -n 's|^// opt: *||p' "tests/cases/$name.txt" | head -1)
+    optlist=${optlist:-all}
+    timeout $TIME_COMPILE "$BIN" -target codinter -opt "$optlist" -debug < "tests/cases/$name.txt" > "$tmp" 2>&1
 
     if diff -q "$tmp" "$expected" > /dev/null; then
-        echo "PASS   $name (opt)"; pass=$((pass+1))
+        echo "PASS   $name (opt $optlist)"; pass=$((pass+1))
     else
-        echo "FAIL   $name (opt)"; diff "$expected" "$tmp" | sed 's/^/         /'; fail=$((fail+1))
+        echo "FAIL   $name (opt $optlist)"; diff "$expected" "$tmp" | sed 's/^/         /'; fail=$((fail+1))
     fi
 done
 
