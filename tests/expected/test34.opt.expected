@@ -1,0 +1,35 @@
+func begin f
+  t0 = x + 1
+  x = t0
+  t3 = x > 2
+  ifFalse t3 goto L5
+  x = 3
+L5:
+  return x
+func end f
+
+func begin g
+L6:
+  t4 = n > 10
+  ifFalse t4 goto L8
+  return n
+L8:
+  t5 = n + 1
+  n = t5
+  goto L6
+func end g
+
+func begin main
+  param 1
+  t7 = call f, 1
+  t8 = t7 > 2
+  t6 = t8
+  b = t6
+  param 1
+  t9 = call f, 1
+  param 5
+  t10 = call g, 1
+  t11 = t9 + t10
+  return t11
+func end main
+

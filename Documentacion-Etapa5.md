@@ -96,7 +96,7 @@ c-tds -target codinter -opt all prog.ctds         # escribe prog.opt (TAC optimi
 |---|---|---|---|
 | `constfold` | Plegado de constantes (`2 * 3` → `6`) | AST | **implementada** |
 | `constprop` | Propagación de constantes (`x = 3; y = x + 1` → `y = 4`) | TAC | **implementada** |
-| `deadcode` | Eliminación de código inalcanzable | TAC | pendiente |
+| `deadcode` | Eliminación de código inalcanzable | TAC | **implementada** |
 | `tempslots` | Reutilización de slots de temporales | código objeto | pendiente |
 
 Un nombre inexistente es un error y el compilador termina con código 1:
@@ -248,6 +248,23 @@ LIMITACIÓN: Al ser local, pierde información que una versión global conservar
 
 **Runner.** `run_tests.sh` tiene tiempo límite: 10 s para compilar y 5 s para ejecutar cada programa. Un ciclo infinito (en el compilador o en el programa generado) da `FAIL ... no terminó en 5 s` en vez de colgar todos los tests. `BIN` se puede cambiar para correr los tests contra otro compilador.
 
+## Eliminación de código inalcanzable (`-opt deadcode`)
+
+**Qué hace.** Borra del TAC las instrucciones a las que la ejecución nunca puede llegar. Aprovecha las condiciones constantes que dejan el plegado y la propagación (`if (1 > 2)` → `ifFalse false goto L`), y el código escrito después de un `return`.
+
+| Regla | Antes | Después |
+| Condición siempre verdadera | `ifFalse true goto L` | se borra (nunca salta) |
+| Condición siempre falsa | `ifFalse false goto L` | `goto L` (siempre salta) |
+| Código inalcanzable | todo lo que sigue a un `goto` / `return` hasta la próxima etiqueta usada | se borra |
+| Salto a la instrucción siguiente | `goto L` seguido de `L:` | se borra el `goto` |
+| Etiqueta sin uso | `L:` que ningún `goto`/`ifFalse` usa | se borra |
+
+- `remove_dead_code` (`optimizer.c`) recorre la lista con un puntero al `next` anterior (`struct tac **pp`), así borrar una instrucción es `*pp = i->next`. Un indicador `dead` se activa después de `goto`/`return` y se apaga en una etiqueta **usada** (se puede llegar saltando) o al empezar/terminar una función.
+- **Se repite hasta que no cambie nada**
+- Una etiqueta sin uso no corta el código inalcanzable: si nadie salta a ella, solo se llega desde arriba.
+- `false || e` → queda solo `e`, y `e` se sigue evaluando (si tiene una llamada, se hace).
+
+**Tests.** `tests/cases/test34.txt` 
 
 ## `float` en la generación de código: error en lugar de código incorrecto
 
@@ -278,8 +295,10 @@ El compilador termina con código 1 y no genera `.ass` ni `.out`. El análisis (
 
 
 ## Pendientes
-- **Eliminación de código inalcanzable** (después de `return`/`goto`, ramas de `if (false)`).
 - **Reutilización de slots de temporales** (lista de offsets libres).
+- **A CHEQUEAR: orden de `constprop` y `deadcode`.**: posibles mejoras: 
+   * Repetir `constprop` y `deadcode` hasta que ninguna cambie nada  Requiere que cada pasada devuelva si cambió algo.
+   * Alternativa complementaria: eliminar código muerto también en el AST, después del plegado (`if (true)`, `while (false)`, sentencias después de `return`), para que esas etiquetas nunca lleguen al TAC.
 
 ## diferencias con la especificación 
 

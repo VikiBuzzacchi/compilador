@@ -333,9 +333,63 @@ static struct tac *propagate_constants(struct tac *code) {
     return remove_unused_temps(code);
 }
 
-/* Eliminación de código inalcanzable: instrucciones después de return/goto hasta la próxima etiqueta.
-   TODO: implementar. */
+/* Eliminación de código inalcanzable. Reglas:
+     ifFalse true goto L      → se borra (nunca salta)
+     ifFalse false goto L     → goto L (siempre salta)
+     después de goto / return → se borra todo hasta la próxima etiqueta (no se puede llegar)
+     goto L seguido de L:     → se borra el goto
+     L: que ningún salto usa  → se borra
+   Se repite hasta que no cambie nada, porque una regla habilita a otra (borrar un goto deja una
+   etiqueta sin uso, y sin la etiqueta el código que sigue puede quedar inalcanzable).
+   Siempre termina: cada vuelta que cambia algo borra al menos una instrucción. */
+
+/* ¿Algún salto (goto o ifFalse) va a la etiqueta l? */
+static int label_used(struct tac *code, const char *l) {
+    for (struct tac *i = code; i; i = i->next)
+        if ((i->op == TAC_GOTO || i->op == TAC_IFFALSE) && strcmp(i->label, l) == 0)
+            return 1;
+    return 0;
+}
+
 static struct tac *remove_dead_code(struct tac *code) {
+    int changed = 1;
+    while (changed) {
+        changed = 0;
+        int dead = 0;                   /* 1 después de goto o return: no se puede llegar hasta una etiqueta */
+        struct tac **pp = &code;        /* puntero al 'next' anterior, para desenganchar instrucciones */
+        while (*pp) {
+            struct tac *i = *pp;
+            int remove = 0;
+
+            if (i->op == TAC_LABEL) {
+                if (!label_used(code, i->label)) remove = 1;    /* sin saltos: no corta el código inalcanzable */
+                else dead = 0;                                  /* se puede llegar saltando */
+            } else if (i->op == TAC_FUNC_BEGIN || i->op == TAC_FUNC_END) {
+                dead = 0;
+            } else if (dead) {
+                remove = 1;
+            } else if (i->op == TAC_IFFALSE && i->a.kind == OPD_BOOL) {
+                if (i->a.ival) {
+                    remove = 1;                                 /* ifFalse true: nunca salta */
+                } else {
+                    i->op = TAC_GOTO;                           /* ifFalse false: siempre salta */
+                    memset(&i->a, 0, sizeof(i->a));
+                    changed = 1;
+                }
+            } else if (i->op == TAC_GOTO && i->next && i->next->op == TAC_LABEL
+                       && strcmp(i->label, i->next->label) == 0) {
+                remove = 1;                                     /* salta a la instrucción siguiente */
+            }
+
+            if (remove) {
+                *pp = i->next;
+                changed = 1;
+                continue;
+            }
+            if (i->op == TAC_GOTO || i->op == TAC_RETURN) dead = 1;
+            pp = &i->next;
+        }
+    }
     return code;
 }
 
