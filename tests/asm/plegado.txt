@@ -1,0 +1,47 @@
+// exit: 0
+// link: tests/asm/lib.c
+// Plegado de constantes: cada valor tiene que dar igual sin optimizar (calculado al ejecutar)
+// y con -opt all (calculado por el compilador). El runner corre el test en los dos modos.
+int g;
+
+void printInt(int x) extern;
+void printBool(boolean b) extern;
+
+int inc() {
+    g = g + 1;
+    return g;
+}
+
+int main() {
+    boolean b;
+
+    // aritmética con wrap de 32 bits
+    printInt(2 + 3 * 4);                        // expect: 14
+    printInt(2147483647 + 1);                   // expect: -2147483648
+    printInt(-2147483647 - 1);                  // expect: -2147483648
+    printInt(65536 * 65536);                    // expect: 0
+    printInt(-(-2147483647 - 1));               // expect: -2147483648
+
+    // división y resto: truncan hacia 0, y el caso borde INT_MIN / -1
+    printInt(-7 / 2);                           // expect: -3
+    printInt(-7 % 2);                           // expect: -1
+    printInt((-2147483647 - 1) / -1);           // expect: -2147483648
+    printInt((-2147483647 - 1) % -1);           // expect: 0
+
+    // comparaciones y lógica entre literales
+    printBool(3 < 5 == true);                   // expect: true
+    printBool(!(1 == 2));                       // expect: true
+    printBool(true == false);                   // expect: false
+
+    // cortocircuito: plegar no puede cambiar qué llamadas se hacen
+    g = 0;
+    b = false && inc() == 1;                    // no llama a inc
+    b = true || inc() == 1;                     // no llama a inc
+    printInt(g);                                // expect: 0
+    b = true && inc() == 1;                     // llama a inc (g = 1)
+    b = inc() == 2 || false;                    // llama a inc (g = 2)
+    b = inc() == 3 && false;                    // e && false: inc se llama igual (g = 3)
+    printInt(g);                                // expect: 3
+    printBool(b);                               // expect: false
+    return 0;
+}

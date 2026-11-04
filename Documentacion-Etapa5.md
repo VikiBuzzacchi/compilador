@@ -94,7 +94,7 @@ c-tds -target codinter -opt all prog.ctds         # escribe prog.opt (TAC optimi
 
 | Nombre | Optimización | Sobre | Estado |
 |---|---|---|---|
-| `constfold` | Plegado de constantes (`2 * 3` → `6`) | AST | pendiente |
+| `constfold` | Plegado de constantes (`2 * 3` → `6`) | AST | **implementada** |
 | `constprop` | Propagación de constantes (`x = 3; y = x + 1` → `y = 4`) | TAC | pendiente |
 | `deadcode` | Eliminación de código inalcanzable | TAC | pendiente |
 | `tempslots` | Reutilización de slots de temporales | código objeto | pendiente |
@@ -150,6 +150,72 @@ PASS   valores (asm)
 PASS   valores (asm -opt all)
 ```
 
+## Plegado de constantes (`-opt constfold`)
+
+**Qué hace.** Calcula en tiempo de compilación las operaciones cuyos operandos son literales y las reemplaza por el resultado. Así el programa ya no las calcula cada vez que se ejecuta.
+
+```c
+x = 2 + 3 * 4;        →   x = 14
+b = !(1 == 2);        →   b = true
+x = x * (2 + 2);      →   x = x * 4         (se pliega solo la parte constante)
+```
+
+En el TAC de `tests/cases/test32.txt`, `main` pasa de 62 a 24 instrucciones (`test32.ci` vs `test32.opt`):
+
+```
+sin optimizar           con -opt all
+  t0 = 3 * 4              x = 14
+  t1 = 2 + t0
+  x = t1
+```
+
+### Cómo funciona
+
+`fold_constants` (`optimizer.c`) es una pasada sobre el AST que se ejecuta después del análisis semántico y antes de generar el TAC.
+
+**1. Recorrido** Para cada nodo, primero pliega sus hijos (`left`, `right`, `third`) y después el nodo; las listas (sentencias, argumentos) se recorren por `next`. Por eso una expresión anidada se pliega de abajo hacia arriba en una sola pasada:
+
+```
+      +                 +              14
+     / \               / \
+    2   *      →      2   12     →
+       / \
+      3   4
+
+
+**2. Modificación** Un nodo plegado no se reemplaza por uno nuevo: el mismo nodo se convierte en literal (`make_int`/`make_bool` cambian `kind`, `value` y `data_type` y borran los hijos). Así el padre sigue apuntando al mismo nodo y no hace falta actualizar punteros, y se conservan su `line` y su `next`.
+
+**3. Reglas** (solo `int` y `boolean`, porque `float` no tiene back-end)
+
+| Operación | Se pliega cuando | Resultado |
+|---|---|---|
+| `+ - *` | los dos operandos son literales `int` | con wrap de 32 bits |
+| `/ %` | los dos son literales y el divisor no es 0 | trunca hacia 0, como `idivq` |
+| `< > ==` | los dos son literales `int` | literal `boolean` |
+| `==` | los dos son literales `boolean` | literal `boolean` |
+| `-e` | `e` es literal `int` | con wrap |
+| `!e` | `e` es literal `boolean` | literal `boolean` |
+| `false && e`, `true \|\| e` | el izquierdo es literal | `false` / `true` |
+| `true && e`, `false \|\| e` | el izquierdo es literal | `e` |
+| `e && true`, `e \|\| false` | el derecho es literal | `e` |
+
+### Decisiones y casos borde
+
+- **Mismo resultado que sin optimizar.** Plegar no puede cambiar lo que calcula el programa. Por eso el plegado usa la misma aritmética que el código generado: 32 bits con wrap. En C, el overflow de `int` con signo es comportamiento indefinido, así que las cuentas se hacen en `unsigned` (optimizer.c) y se convierten a `int` (`2147483647 + 1` = `-2147483648`).
+- **`x / 0` y `x % 0` no se pliegan.** ERROR
+- **CASO PARTICULAR `INT_MIN / -1`.** El resultado real (`+2147483648`) no entra en un `int`. da `INT_MIN`, y `INT_MIN % -1` da `0`. No es el valor matemático, pero la regla es la misma que para `2147483647 + 1`. Para que coincida con el resultado sin optimizar
+
+- Plegar condiciones deja `if (1 > 2)` como `ifFalse false goto L`. Eliminar esa rama le corresponde a `deadcode`, que por eso se ejecuta después.
+
+### Tests
+
+| Test | Qué verifica |
+|---|---|
+| `tests/cases/test32.txt` + `test32.opt.expected` | El TAC con `-opt all`: qué se pliega y qué no (`7 / 0`, `x > 2 && false`, plegado parcial de `x * (2 + 2)`). `run_tests.sh` tiene un loop nuevo que compara `-target codinter -opt all` con `<nombre>.opt.expected` |
+| `tests/asm/plegado.txt` | Los resultados al ejecutar: wrap, `INT_MIN`, `INT_MIN / -1`, división con negativos, lógica entre literales y cortocircuito con llamadas (cuenta las llamadas a `inc()`). Corre sin optimizar y con `-opt all` y los dos modos tienen que coincidir |
+| `valores`, `corto`, `int32`, ... (existentes) | Corren también con `-opt all` y siguen dando lo mismo |
+
+
 ## `float` en la generación de código: error en lugar de código incorrecto
 
 **Problema.** El generador de assembly no soporta `float`: los literales se cargaban como 0 y las operaciones se hacían con instrucciones enteras. Tampoco funcionaba llamar a funciones C con `float`. Un programa con `float` compilaba sin avisar y generaba un ejecutable que calculaba mal.
@@ -176,11 +242,11 @@ El compilador termina con código 1 y no genera `.ass` ni `.out`. El análisis (
 | `tests/asm/floatparam.txt` | `float` solo como parámetro, llamado con un `int`, sin literales: el chequeo no puede mirar solo los literales |
 | `test27 (codinter)` (existente) | Un programa con `float` sigue generando su `.ci` |
 
-Antes de implementarlo, los dos tests nuevos fallaban ("compiló, se esperaba el error"). Ahora pasan los 64 tests. Se verificó además a mano: una global `float` sin usar, un `extern` con parámetro y retorno `float`, y `x = 3.7` con `x` entera dan el error con la línea correcta.
+
 
 ## Pendientes
 
-- **Plegado y propagación de constantes.**
+- **Propagación de constantes.**
 - **Eliminación de código inalcanzable** (después de `return`/`goto`, ramas de `if (false)`).
 - **Reutilización de slots de temporales** (lista de offsets libres).
 

@@ -39,6 +39,19 @@ for expected in tests/expected/*.ci.expected; do
     fi
 done
 
+# Código intermedio optimizado: compara ./compilador -target codinter -opt all con <nombre>.opt.expected
+for expected in tests/expected/*.opt.expected; do
+    [ -f "$expected" ] || continue
+    name=$(basename "$expected" .opt.expected)
+    "$BIN" -target codinter -opt all -debug < "tests/cases/$name.txt" > "$tmp" 2>&1
+
+    if diff -q "$tmp" "$expected" > /dev/null; then
+        echo "PASS   $name (opt)"; pass=$((pass+1))
+    else
+        echo "FAIL   $name (opt)"; diff "$expected" "$tmp" | sed 's/^/         /'; fail=$((fail+1))
+    fi
+done
+
 # Código objeto (etapa 4): compila y ejecuta cada tests/asm/*.txt. Se chequea:
 #   "// exit: N"       el exit code
 #   "// expect: valor" la salida, una línea por valor y en orden (impresa con printInt/printBool);

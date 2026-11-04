@@ -1,0 +1,23 @@
+int f() {
+    return 1;
+}
+int main() {
+    int x;
+    boolean b;
+    x = 2 + 3 * 4;
+    x = 2147483647 + 1;
+    x = -2147483647 - 1;
+    x = (-2147483647 - 1) / -1;
+    x = 7 / 0;
+    x = x * (2 + 2);
+    b = 3 < 5 == true;
+    b = !(1 == 2);
+    b = false && f() == 1;
+    b = true && x > 2;
+    b = x > 2 || false;
+    b = x > 2 && false;
+    if (1 > 2) {
+        x = 0;
+    }
+    return x;
+}
