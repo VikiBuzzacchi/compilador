@@ -43,31 +43,52 @@ done
 #   "// exit: N"       el exit code
 #   "// expect: valor" la salida, una línea por valor y en orden (impresa con printInt/printBool);
 #                      puede ir al final de la línea del print: printInt(x);  // expect: 3
-# Un test sin ninguna de las dos no se chequea.
+#   "// error: mensaje" la compilación tiene que fallar, mostrar ese mensaje y no generar el .ass
+# Un test sin ninguna de las tres no se chequea.
+# Cada test corre dos veces: sin optimizar y con -opt all. Una optimización no puede cambiar el resultado.
+for mode in "" "-opt all"; do
+label="asm${mode:+ $mode}"
 for input in tests/asm/*.txt; do
     name=$(basename "$input" .txt)
     want=$(sed -n 's|^// exit: *\([0-9]*\).*|\1|p' "$input" | head -1)
     sed -n 's|.*// expect: *||p' "$input" > "$expected_out"
-    [ -n "$want" ] || [ -s "$expected_out" ] || continue
+    errmsg=$(sed -n 's|^// error: *||p' "$input" | head -1)
+    [ -n "$want" ] || [ -s "$expected_out" ] || [ -n "$errmsg" ] || continue
 
     links=$(sed -n 's|^// link: *||p' "$input")      # archivos C que definen los extern
 
+    # Test de error: no tiene que compilar
+    if [ -n "$errmsg" ]; then
+        rm -f "$name.ass"
+        if "$BIN" $mode "$input" $links -o "$tmp.out" > "$tmp" 2>&1; then
+            echo "FAIL   $name ($label): compiló, se esperaba el error \"$errmsg\""; fail=$((fail+1))
+        elif ! grep -qF "$errmsg" "$tmp"; then
+            echo "FAIL   $name ($label): falló sin el mensaje \"$errmsg\""; sed 's/^/         /' "$tmp"; fail=$((fail+1))
+        elif [ -f "$name.ass" ]; then
+            echo "FAIL   $name ($label): dio el error pero generó $name.ass"; fail=$((fail+1))
+        else
+            echo "PASS   $name ($label)"; pass=$((pass+1))
+        fi
+        rm -f "$tmp.out" "$name.ass"; continue
+    fi
+
     exe=$(mktemp)
-    if ! "$BIN" "$input" $links -o "$exe" > "$tmp" 2>&1; then
-        echo "FAIL   $name (asm: no compila)"; sed 's/^/         /' "$tmp"; fail=$((fail+1))
+    if ! "$BIN" $mode "$input" $links -o "$exe" > "$tmp" 2>&1; then
+        echo "FAIL   $name ($label: no compila)"; sed 's/^/         /' "$tmp"; fail=$((fail+1))
         rm -f "$exe" "$name.ass"; continue
     fi
     "$exe" > "$tmp"; got=$?
     rm -f "$exe" "$name.ass"
 
     if [ -n "$want" ] && [ "$got" -ne "$want" ]; then
-        echo "FAIL   $name (asm): exit $got, esperado $want"; fail=$((fail+1))
+        echo "FAIL   $name ($label): exit $got, esperado $want"; fail=$((fail+1))
     elif [ -s "$expected_out" ] && ! diff -q "$expected_out" "$tmp" > /dev/null; then
-        echo "FAIL   $name (asm): salida distinta (< esperado, > obtenido)"
+        echo "FAIL   $name ($label): salida distinta (< esperado, > obtenido)"
         diff "$expected_out" "$tmp" | sed 's/^/         /'; fail=$((fail+1))
     else
-        echo "PASS   $name (asm)"; pass=$((pass+1))
+        echo "PASS   $name ($label)"; pass=$((pass+1))
     fi
+done
 done
 
 echo

@@ -5,6 +5,7 @@
 #include "intermediate_code.h"
 #include "tac.h"
 #include "object_code.h"
+#include "optimizer.h"
 
 extern int yyparse();
 extern struct node *root;
@@ -34,8 +35,20 @@ int main(int argc, char **argv) {
     char *input_filename = NULL;
     char *exe_name = NULL;          /* valor de -o */
     char link_files[1024] = "";     /* archivos extra (.c, .o, .s) para enlazar: definen los extern */
+    struct opt_flags opts = { 0 };  /* por defecto, ninguna optimización */
 
     for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-opt") == 0) {
+            /* La lista es opcional: el siguiente argumento es la lista si no es una opción
+               ni tiene '.' (los nombres de optimización no tienen; los archivos sí).
+               "-opt" solo equivale a "-opt all". */
+            if (i + 1 < argc && argv[i + 1][0] != '-' && !strchr(argv[i + 1], '.')) {
+                if (!parse_opt_list(argv[++i], &opts)) return 1;
+            } else {
+                parse_opt_list("all", &opts);
+            }
+            continue;
+        }
         if (strcmp(argv[i], "-target") == 0 && i + 1 < argc) {
             const char *t = argv[++i];
             if (strcmp(t, "codinter") == 0) target = T_CODINTER;
@@ -67,24 +80,41 @@ int main(int argc, char **argv) {
 
     
     if (ok == 0 && lexical_errors == 0 && syntax_errors == 0 && semantic_errors == 0) {
+        /*Si el programa tiene un float y quiero generar ASSEMBLY notifico
+        ASSEMBLY no soporta floats */
+        if (target == T_ASSEMBLY || (target == T_NONE && input_filename)) {
+            struct node *f = find_float(root);
+            if (f) {
+                fprintf(stderr, "Error en la línea %d: float no soportado en generación de código\n", f->line);
+                return 1;
+            }
+        }
+
+        /* Optimizaciones (solo las activadas con -opt): primero sobre el AST, después sobre el TAC */
+        optimize_ast(root, &opts);
+        struct tac *code = NULL;
+        if (target == T_CODINTER || target == T_ASSEMBLY || (target == T_NONE && input_filename))
+            code = optimize_tac(build_tac(root), &opts);
+
         if (target == T_CODINTER) {
-            /* Con archivo de entrada se escribe <nombre>.ci; el TAC va a consola
-               solo con -debug, o si la entrada es stdin (no hay archivo de salida) */
+            /* Con archivo de entrada se escribe <nombre>.ci, o <nombre>.opt si hay optimizaciones;
+               el TAC va a consola solo con -debug, o si la entrada es stdin (no hay archivo de salida) */
             if (debug || !input_filename)
-                gen_intermediate_code(root, stdout);
+                print_tac(code, stdout);
             if (input_filename) {
+                const char *ext = any_opt(&opts) ? ".opt" : ".ci";
                 char ci_name[512];
-                make_out_name(input_filename, ".ci", ci_name, sizeof(ci_name));
+                make_out_name(input_filename, ext, ci_name, sizeof(ci_name));
                 FILE *ci = fopen(ci_name, "w");
                 if (ci) {
-                    gen_intermediate_code(root, ci);
+                    print_tac(code, ci);
                     fclose(ci);
                 } else {
-                    perror("No se pudo crear el archivo .ci");
+                    fprintf(stderr, "No se pudo crear el archivo %s\n", ci_name);
                 }
             }
         } else if (target == T_ASSEMBLY && !input_filename) {
-            gen_object_code(build_tac(root), stdout);
+            gen_object_code(code, stdout);
         } else if (target == T_FRONT || (target == T_NONE && !input_filename)) {
             /* Solo análisis (entrada por stdin sin target, o scan/parse) */
             if (debug) printf("\n--- Análisis sintáctico exitoso ---\n");
@@ -97,7 +127,7 @@ int main(int argc, char **argv) {
                 perror("No se pudo crear el archivo .ass");
                 return 1;
             }
-            gen_object_code(build_tac(root), f);
+            gen_object_code(code, f);
             fclose(f);
 
             /* Sin -target: además se ensambla y linkea a <nombre>.out (o lo de -o) */

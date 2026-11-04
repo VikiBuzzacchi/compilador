@@ -80,4 +80,8 @@ extern struct symbol *current_method;
 // Una llamada usada como expresión debe devolver valor (regla 5)
 struct node *check_call_value(struct node *call);
 
+// Primer nodo que usa float (declaración, parámetro, literal, expresión o llamada); NULL si no hay.
+// El generador de código objeto solo soporta int y boolean.
+struct node *find_float(struct node *n);
+
 #endif

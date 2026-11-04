@@ -1,0 +1,9 @@
+// error: float no soportado en generación de código
+// Float sin ningún literal float: solo en el parámetro de un método, llamado con un int
+// (coerción int -> float). El chequeo no puede basarse solo en los literales.
+int mitad(float x) {
+    return 1;
+}
+int main() {
+    return mitad(4);
+}

@@ -1,0 +1,8 @@
+// error: float no soportado en generación de código
+// El back-end no soporta float: compilar a assembly tiene que dar un error claro,
+// en vez de generar un ejecutable que calcula mal (los literales float valen 0).
+int main() {
+    float y;
+    y = 2.5;
+    return 0;
+}

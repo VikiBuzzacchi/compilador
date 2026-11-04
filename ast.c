@@ -308,6 +308,17 @@ struct node *check_call_value(struct node *call) {
 }
 
 
+struct node *find_float(struct node *n) {
+    for (; n; n = n->next) {
+        if (n->data_type == TYPE_FLOAT || n->kind == NODE_FLOAT)
+            return n;
+        struct node *f;
+        if ((f = find_float(n->left)) || (f = find_float(n->right)) || (f = find_float(n->third)))
+            return f;
+    }
+    return NULL;
+}
+
 void print_ast(struct node *t) {
     (void) t;
 }

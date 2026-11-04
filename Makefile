@@ -1,5 +1,5 @@
-SRCS = lex.yy.c parser.tab.c ast.c symbol_table.c intermediate_code.c object_code.c main.c
-HDRS = ast.h symbol_table.h tac.h intermediate_code.h object_code.h parser.tab.h
+SRCS = lex.yy.c parser.tab.c ast.c symbol_table.c intermediate_code.c object_code.c optimizer.c main.c
+HDRS = ast.h symbol_table.h tac.h intermediate_code.h object_code.h optimizer.h parser.tab.h
 
 compilador: $(SRCS) $(HDRS)
 	gcc -o compilador $(SRCS) -lfl

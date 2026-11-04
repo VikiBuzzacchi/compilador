@@ -78,9 +78,122 @@ printInt(resta(y * 2, y - 3));              // expect: 13
 printBool(!(x == 3) || x < 4 && true);      // expect: true
 ```
 
+## Optimizaciones opcionales: opción `-opt`
+
+La spec pide la opción `-opt [optimización]` ("`all` realiza todas las optimizaciones soportadas"). s
+
+### Uso
+
+```sh
+c-tds prog.ctds                                   # sin optimizar
+c-tds -opt all prog.ctds                          # todas
+c-tds -opt prog.ctds                              # igual que -opt all
+c-tds -opt constfold,deadcode prog.ctds           # solo esas dos
+c-tds -target codinter -opt all prog.ctds         # escribe prog.opt (TAC optimizado)
+```
+
+| Nombre | Optimización | Sobre | Estado |
+|---|---|---|---|
+| `constfold` | Plegado de constantes (`2 * 3` → `6`) | AST | pendiente |
+| `constprop` | Propagación de constantes (`x = 3; y = x + 1` → `y = 4`) | TAC | pendiente |
+| `deadcode` | Eliminación de código inalcanzable | TAC | pendiente |
+| `tempslots` | Reutilización de slots de temporales | código objeto | pendiente |
+
+Un nombre inexistente es un error y el compilador termina con código 1:
+
+```
+Optimización desconocida: 'constflod' (válidas: all, constfold, constprop, deadcode, tempslots)
+```
+
+### Cómo funciona
+
+**1. Lectura de la opción (`main.c`).** `-opt` llena una `struct opt_flags` (`optimizer.h`) con un campo por optimización, todos en 0 por defecto. `parse_opt_list` separa la lista por comas y activa cada nombre (`all` activa todos).
+
+La lista es opcional (`-opt [optimización]`), y eso genera una ambigüedad: en `c-tds -opt prog.ctds`, ¿`prog.ctds` es el archivo o el nombre de una optimización? **Decisión:** el siguiente argumento se toma como lista si no empieza con `-` y no tiene `.`. Los nombres de optimización nunca tienen punto y los archivos de entrada sí (`.ctds`). Si no, `-opt` solo equivale a `-opt all`. Así, un nombre mal escrito (`-opt constflod`) da error en vez de tomarse como archivo de entrada.
+
+**2. Pipeline (`main.c`).** Cada optimización es una pasada independiente, y se ejecuta solo si está activada:
+
+```
+yyparse()                     AST + análisis semántico (sin cambios)
+   ↓
+optimize_ast(root, &opts)     constfold
+   ↓
+build_tac(root)               TAC (sin cambios)
+   ↓
+optimize_tac(code, &opts)     constprop, después deadcode
+   ↓
+print_tac → .ci / .opt        o   gen_object_code → .ass → .out
+```
+
+Antes, `main.c` llamaba a `gen_intermediate_code` y a `build_tac` por separado en cada rama. Ahora el TAC se construye y optimiza **una sola vez**, y todas las salidas (`.ci`/`.opt`, `.ass`, `.out`) usan esa misma lista.
+
+**Decisión: las optimizaciones son pasadas separadas y no se hacen dentro de `new_binop`/`gen_expr`.**
+- Se pueden activar y desactivar con `-opt`.
+- El análisis semántico trabaja sobre el árbol original, así que los mensajes de error y sus líneas no dependen de las optimizaciones.
+- Cada optimización está en una función propia de `optimizer.c` y se puede probar por separado.
+- El orden importa y queda explícito en un solo lugar: el plegado va antes de la propagación, y las dos antes de eliminar código muerto.
+
+**3. Salida `.opt`.** Con `-target codinter`, si hay al menos una optimización activa se escribe `<nombre>.opt` (el TAC optimizado) en lugar de `<nombre>.ci`. Así se puede comparar lado a lado el código antes y después de optimizar. La spec no dice qué contiene `.opt`; esta es una decisión de diseño a confirmar con la cátedra. Sin `-target`, `-opt` afecta al `.ass` y al `.out`, pero los nombres de archivo no cambian.
+
+### Agregar una optimización nueva
+
+1. Agregar el campo en `struct opt_flags` (`optimizer.h`) y el nombre en `opt_names` (`optimizer.c`), en la misma posición.
+2. Implementar la pasada como función `static` en `optimizer.c` y llamarla desde `optimize_ast` o `optimize_tac`, según sobre qué trabaje.
+3. Para `tempslots`, que trabaja en el generador de código objeto, hay que pasarle los flags a `gen_object_code`. 
+
+### Tests
+
+`run_tests.sh` ejecuta cada test de `tests/asm/` **dos veces**: sin optimizar (`asm`) y con `-opt all` (`asm -opt all`). Los dos tienen que dar el exit code y la salida esperados. 
+
+```
+PASS   valores (asm)
+PASS   valores (asm -opt all)
+```
+
+## `float` en la generación de código: error en lugar de código incorrecto
+
+**Problema.** El generador de assembly no soporta `float`: los literales se cargaban como 0 y las operaciones se hacían con instrucciones enteras. Tampoco funcionaba llamar a funciones C con `float`. Un programa con `float` compilaba sin avisar y generaba un ejecutable que calculaba mal.
+Un programa con `float` **no se compila a assembly y se reporta el motivo**: es mejor un error explícito que un ejecutable con resultados incorrectos.
+
+```
+$ c-tds prog.ctds
+Error en la línea 4: float no soportado en generación de código
+```
+
+El compilador termina con código 1 y no genera `.ass` ni `.out`. El análisis (`-target parse`) y el código intermedio (`-target codinter`) siguen aceptando `float`, porque esas etapas sí lo manejan.
+
+**Implementación.**
+- **`ast.c`: `find_float(root)`** recorre el AST (`left`, `right`, `third` y las listas por `next`) y devuelve el primer nodo que usa `float`: un literal (`NODE_FLOAT`) o cualquier nodo con `data_type == TYPE_FLOAT`. Así detecta declaraciones de variables (globales o locales), parámetros, métodos que devuelven `float` (incluidos los `extern`), expresiones y llamadas. La línea del nodo se usa en el mensaje.
+- **`main.c`:** después del análisis sin errores, si el destino es assembly (`-target assembly` o sin `-target`) y `find_float` encuentra un nodo, reporta el error y termina antes de optimizar y generar código.
+
+**Por qué en el AST y no en el generador.** En el TAC los temporales no tienen tipo, así que un `float` sin literales (por ejemplo, un parámetro `float` recibido de una llamada con `int`) no se podría detectar ahí. En el AST, el análisis semántico ya dejó el tipo en cada nodo. Además, el chequeo ocurre antes de abrir el `.ass`, así que no queda un archivo a medio escribir.
+
+**Tests.** Usan la línea `// error: mensaje` de `run_tests.sh`: la compilación tiene que fallar, mostrar ese mensaje y no dejar el `.ass`.
+
+| Archivo | Caso |
+|---|---|
+| `tests/asm/floatvar.txt` | Variable local y literal `float` |
+| `tests/asm/floatparam.txt` | `float` solo como parámetro, llamado con un `int`, sin literales: el chequeo no puede mirar solo los literales |
+| `test27 (codinter)` (existente) | Un programa con `float` sigue generando su `.ci` |
+
+Antes de implementarlo, los dos tests nuevos fallaban ("compiló, se esperaba el error"). Ahora pasan los 64 tests. Se verificó además a mano: una global `float` sin usar, un `extern` con parámetro y retorno `float`, y `x = 3.7` con `x` entera dan el error con la línea correcta.
+
 ## Pendientes
 
 - **Plegado y propagación de constantes.**
 - **Eliminación de código inalcanzable** (después de `return`/`goto`, ramas de `if (false)`).
 - **Reutilización de slots de temporales** (lista de offsets libres).
-- **`float` no soportado** en el generador de assembly (los literales se cargan como 0).
+
+## diferencias con la especificación 
+
+Encontradas al comparar el compilador con `00-TDS-proyecto.pdf` y `01-TDS-spec-lenguaje.pdf`.
+
+- [ ] **`_` en identificadores.** La gramática permite `⟨alpha_num⟩ → ⟨alpha⟩ | ⟨digit⟩ | _`, pero el lexer usa `[a-zA-Z][a-zA-Z0-9]*` y `mi_var` da error léxico. Cambiar a `[a-zA-Z][a-zA-Z0-9_]*`.
+- [ ] **Métodos con retorno que llegan al final sin `return`.** La spec dice que un método que retorna un valor "no puede alcanzar el fin del método". Hoy `int f() { x = 1; }` compila sin error y devuelve 0. Falta un chequeo semántico: que todo camino del cuerpo termine en `return` (un `if` cuenta solo si tiene `else` y las dos ramas retornan).
+- [x] **Opción `-opt [optimización]`.** Implementada; ver "Optimizaciones opcionales: opción `-opt`".
+- [ ] **Salidas `.lex` / `.sint` y extensión `.ctds`.** Con `-target scan`/`parse` la spec pide generar un archivo con extensión según la etapa, y el archivo de entrada debe ser `.ctds`. Hoy no se generan esos archivos y los tests son `.txt`. Consultar con la cátedra si se evalúan.
+- [ ] **Literales float.** La spec define `digit+ . digit+`. El lexer también acepta `1.`, `.5` y exponentes (`1e5`). Documentar como extensión o restringir.
+- [x] **Error claro para `float` en la generación de código.** Implementado; ver "`float` en la generación de código: error en lugar de código incorrecto".
+- [ ] **Literal `-2147483648`.** `2147483648` se rechaza en el lexer antes de aplicar el `-` unario, así que el mínimo no se puede escribir !!!!!
+- [ ] **`extern` como extensión.**  un programa que use `extern` como identificador deja de compilar.
+- [ ] **Documentación entrega final.** 
