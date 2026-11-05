@@ -1,0 +1,59 @@
+// exit: 0
+// link: tests/asm/lib.c
+// frame: fib 32
+// frame: suma4 48
+// frame: main 96
+// Reutilización de slots de temporales: los valores tienen que dar igual sin optimizar y con -opt all,
+// aunque los temporales compartan lugar en la pila.
+void printInt(int x) extern;
+void printBool(boolean b) extern;
+
+int doble(int x) {
+    return x * 2;
+}
+int suma4(int a, int b, int c, int d) {
+    return a + b + c + d;
+}
+int fib(int n) {
+    if (n < 2) {
+        return n;
+    }
+    return fib(n - 1) + fib(n - 2);
+}
+
+int main() {
+    int a;
+    int b;
+    int c;
+    int d;
+    int i;
+    int s;
+    boolean r;
+    a = 7;
+    b = 3;
+    c = 10;
+    d = 4;
+
+    // muchos temporales vivos a la vez
+    printInt((a + b) * (c + d) - (a - b) * (c - d));       // expect: 116
+
+    // param: el valor se lee en el call, no en el param
+    printInt(suma4(a + 1, doble(b * 2), suma4(1, 2, 3, 4), c - d));   // expect: 36
+
+    // el temporal del && se escribe en las dos ramas
+    r = a > 1 && c < 9 || d == 4;
+    printBool(r);                                           // expect: true
+
+    // temporales dentro de un ciclo
+    i = 0;
+    s = 0;
+    while (i < 5) {
+        s = s + i * 2;
+        i = i + 1;
+    }
+    printInt(s);                                            // expect: 20
+
+    // recursión: cada llamada tiene su propio frame
+    printInt(fib(15));                                      // expect: 610
+    return 0;
+}

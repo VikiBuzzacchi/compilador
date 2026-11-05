@@ -114,7 +114,7 @@ int main(int argc, char **argv) {
                 }
             }
         } else if (target == T_ASSEMBLY && !input_filename) {
-            gen_object_code(code, stdout);
+            gen_object_code(code, stdout, opts.tempslots, debug);
         } else if (target == T_FRONT || (target == T_NONE && !input_filename)) {
             /* Solo análisis (entrada por stdin sin target, o scan/parse) */
             if (debug) printf("\n--- Análisis sintáctico exitoso ---\n");
@@ -127,7 +127,7 @@ int main(int argc, char **argv) {
                 perror("No se pudo crear el archivo .ass");
                 return 1;
             }
-            gen_object_code(code, f);
+            gen_object_code(code, f, opts.tempslots, debug);
             fclose(f);
 
             /* Sin -target: además se ensambla y linkea a <nombre>.out (o lo de -o) */

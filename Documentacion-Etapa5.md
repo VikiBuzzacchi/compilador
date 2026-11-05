@@ -97,7 +97,7 @@ c-tds -target codinter -opt all prog.ctds         # escribe prog.opt (TAC optimi
 | `constfold` | Plegado de constantes (`2 * 3` → `6`) | AST | **implementada** |
 | `constprop` | Propagación de constantes (`x = 3; y = x + 1` → `y = 4`) | TAC | **implementada** |
 | `deadcode` | Eliminación de código inalcanzable | TAC | **implementada** |
-| `tempslots` | Reutilización de slots de temporales | código objeto | pendiente |
+| `tempslots` | Reutilización de slots de temporales | código objeto | **implementada** |
 
 Un nombre inexistente es un error y el compilador termina con código 1:
 
@@ -266,6 +266,29 @@ LIMITACIÓN: Al ser local, pierde información que una versión global conservar
 
 **Tests.** `tests/cases/test34.txt` 
 
+## Reutilización de slots de temporales (`-opt tempslots`)
+
+**Qué hace.** Sin la optimización, cada temporal tiene su propio slot de 8 bytes en la pila durante toda la función. Pero un temporal vive muy poco (desde que se escribe hasta su último uso). Entonces, un temporal que ya no se usa devuelve su slot a una lista de libres y el siguiente lo reutiliza. 
+optmización la memoria porque el frame queda del tamaño del máximo de temporales vivos a la vez.
+Importa sobre todo en la recursión, donde cada llamada activa tiene su propio frame.
+
+**Dónde: en el generador de assembly** Se realiza recorriendo el TAC antes de generar el assembly porque es ahí donde se decide la dirección de cada temporal.
+
+**Como.**
+1. Vida de cada temporal:desde su primera aparición hasta su último uso 
+2. Asignación en orden: en cada instrucción, primero se liberan los slots de los temporales que se usan ahí por última vez, y después los temporales que aparecen por primera vez toman un slot libre (o uno nuevo). Se ibera antes de asignar.                                            
+
+**Casos Especiales**
+- **`param t`** el valor se lee recién en el `call` por eso `t` vive hasta el `call`. NO PUEDE PARAR: La generacion de codigo intermedio no lo permite
+- **El temporal de `&&`/`||`** se escribe en las dos ramas: solo la primera aparición le asigna slot.
+- **Ciclos:** si un salto hacia atrás vuelve a un punto donde un temporal está vivo por los ciclos anidados. NO PUEDE PARAR: La generacion de codigo intermedio no lo permite
+
+**`-debug` muestra los slots.** Con `-target assembly -debug` (o sin `-target`), se lista en `stderr` el slot de cada parámetro, variable y temporal.
+
+**Tests.**
+- `tests/asm/tempslots.txt`: muchos temporales vivos a la vez, `param` con llamadas anidadas, el temporal de `&&`/`||`, un ciclo y recursión (`fib(15)`). Corre sin optimizar y con `-opt all`: los valores tienen que dar igual.
+- **Marca nueva `// frame: función bytes`:** el runner compila solo con `-opt tempslots` y compara el `enter $bytes` de esa función. Los tests de ejecución verifican que no se rompa nada; este verifica que la pila 
+
 ## `float` en la generación de código: error en lugar de código incorrecto
 
 **Problema.** El generador de assembly no soporta `float`: los literales se cargaban como 0 y las operaciones se hacían con instrucciones enteras. Tampoco funcionaba llamar a funciones C con `float`. Un programa con `float` compilaba sin avisar y generaba un ejecutable que calculaba mal.
@@ -295,7 +318,6 @@ El compilador termina con código 1 y no genera `.ass` ni `.out`. El análisis (
 
 
 ## Pendientes
-- **Reutilización de slots de temporales** (lista de offsets libres).
 - **A CHEQUEAR: orden de `constprop` y `deadcode`.**: posibles mejoras: 
    * Repetir `constprop` y `deadcode` hasta que ninguna cambie nada  Requiere que cada pasada devuelva si cambió algo.
    * Alternativa complementaria: eliminar código muerto también en el AST, después del plegado (`if (true)`, `while (false)`, sentencias después de `return`), para que esas etiquetas nunca lleguen al TAC.

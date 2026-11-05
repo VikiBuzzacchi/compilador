@@ -115,6 +115,31 @@ for input in tests/asm/*.txt; do
 done
 done
 
+# Tamaño de pila con -opt tempslots: "// frame: función bytes" compara el "enter $bytes" de esa función
+# en el .ass generado solo con tempslots (los tests de ejecución verifican que no se rompa nada;
+# este verifica que efectivamente se achique la pila).
+for input in tests/asm/*.txt; do
+    grep -q '^// frame:' "$input" || continue
+    name=$(basename "$input" .txt)
+    links=$(sed -n 's|^// link: *||p' "$input")
+    if ! timeout $TIME_COMPILE "$BIN" -target assembly -opt tempslots "$input" > "$tmp" 2>&1; then
+        echo "FAIL   $name (frame: no compila)"; sed 's/^/         /' "$tmp"; fail=$((fail+1)); continue
+    fi
+    bad=""
+    while read -r fname want_frame; do
+        got_frame=$(awk -v f="$fname:" '$1 == f { found = 1; next } found && /enter/ { gsub(/[$,]/, "", $2); print $2; exit }' "$name.ass")
+        [ "$got_frame" = "$want_frame" ] || bad="$bad $fname: $got_frame bytes, esperado $want_frame;"
+    done <<EOF2
+$(sed -n 's|^// frame: *||p' "$input")
+EOF2
+    rm -f "$name.ass"
+    if [ -z "$bad" ]; then
+        echo "PASS   $name (frame -opt tempslots)"; pass=$((pass+1))
+    else
+        echo "FAIL   $name (frame -opt tempslots):$bad"; fail=$((fail+1))
+    fi
+done
+
 echo
 echo "PASS: $pass  FAIL: $fail"
 [ "$fail" -eq 0 ]
