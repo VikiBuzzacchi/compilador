@@ -120,7 +120,7 @@ optimize_ast(root, &opts)     constfold
    ↓
 build_tac(root)               TAC (sin cambios)
    ↓
-optimize_tac(code, &opts)     constprop, después deadcode
+optimize_tac(code, &opts)     constprop y deadcode, repetidas hasta que no cambien nada
    ↓
 print_tac → .ci / .opt        o   gen_object_code → .ass → .out
 ```
@@ -317,10 +317,16 @@ El compilador termina con código 1 y no genera `.ass` ni `.out`. El análisis (
 
 
 
-## Pendientes
-- **A CHEQUEAR: orden de `constprop` y `deadcode`.**: posibles mejoras: 
-   * Repetir `constprop` y `deadcode` hasta que ninguna cambie nada  Requiere que cada pasada devuelva si cambió algo.
-   * Alternativa complementaria: eliminar código muerto también en el AST, después del plegado (`if (true)`, `while (false)`, sentencias después de `return`), para que esas etiquetas nunca lleguen al TAC.
+## Orden de `constprop` y `deadcode` repetir hasta un punto fijo
+
+**Problema.** Las dos pasadas se habilitan mutuamente: la propagación pierde información en las etiquetas que `deadcode` después borra, y `deadcode` necesita las condiciones constantes que descubre la propagación.
+ Ningún orden fijo genera la mejor optimización.
+
+**Solución.** `optimize_tac` repite `constprop` y `deadcode` hasta que una vuelta no cambia nada. Cada pasada avisa con `tac_changed` si modificó una instrucción (reemplazar un operando, calcular una instrucción o borrar una)
+
+**Termina siempre:** ninguna pasada deshace lo que hace la otra (la propagación solo reemplaza variables por constantes; `deadcode` solo borra instrucciones). MAX_ROUNDS (100) es solo una red de seguridad: si se alcanzara, el código igual es correcto, solo menos optimizado.
+
+**Alternativa descartada:** eliminar código muerto también en el AST, después del plegado (`if (true)`, `while (false)`, sentencias después de `return`), para que esas etiquetas nunca lleguen al TAC. Con el punto fijo, solo ahorraría vueltas sin mejorar el resultado, y requiere cuidar las declaraciones dentro de los bloques que se eliminan.
 
 ## diferencias con la especificación 
 

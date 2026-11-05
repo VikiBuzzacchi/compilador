@@ -240,15 +240,23 @@ static struct operand cval_opd(struct cval c) {
     return o;
 }
 
+/* 1 si alguna pasada sobre el TAC modificó una instrucción (para repetir hasta un punto fijo).
+   Anotar u olvidar valores en la tabla no cuenta: solo cambios en el código. */
+static int tac_changed;
+
 /* Si el operando es una variable o temporal con valor conocido, lo reemplaza por la constante */
 static void substitute(struct operand *o) {
     if (o->kind != OPD_VAR && o->kind != OPD_TEMP) return;
     struct known *k = lookup(o);
-    if (k) *o = cval_opd(k->val);
+    if (k) {
+        *o = cval_opd(k->val);
+        tac_changed = 1;
+    }
 }
 
 /* La instrucción i escribe una constante en su destino: se convierte en "res = c" y se anota */
 static void becomes_const(struct tac *i, struct cval c) {
+    tac_changed = 1;
     i->op = TAC_ASSIGN;
     i->bop = OP_NONE;
     i->a = cval_opd(c);
@@ -279,6 +287,7 @@ static struct tac *remove_unused_temps(struct tac *code) {
         struct tac *next = i->next;
         if (i->op == TAC_ASSIGN && i->res.kind == OPD_TEMP && !read[i->res.temp_id]) {
             if (prev) prev->next = next; else head = next;
+            tac_changed = 1;
         } else {
             prev = i;
         }
@@ -389,12 +398,21 @@ static struct tac *remove_dead_code(struct tac *code) {
             if (i->op == TAC_GOTO || i->op == TAC_RETURN) dead = 1;
             pp = &i->next;
         }
+        if (changed) tac_changed = 1;
     }
     return code;
 }
 
+/* Termina porque ninguna deshace lo que hace la otra, pero se define MAX_ROUNDS como seguridad 
+    Si llega el código esta menos optimizado. */
+#define MAX_ROUNDS 100
+
 struct tac *optimize_tac(struct tac *code, const struct opt_flags *opts) {
-    if (opts->constprop) code = propagate_constants(code);
-    if (opts->deadcode)  code = remove_dead_code(code);
+    int rounds = 0;
+    do {
+        tac_changed = 0;
+        if (opts->constprop) code = propagate_constants(code);
+        if (opts->deadcode)  code = remove_dead_code(code);
+    } while (tac_changed && ++rounds < MAX_ROUNDS);
     return code;
 }

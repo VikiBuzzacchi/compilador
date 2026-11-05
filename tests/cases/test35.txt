@@ -1,0 +1,15 @@
+// opt: constprop,deadcode
+int main() {
+    int x;
+    int y;
+    int z;
+    x = 5;
+    if (true) {
+        y = 1;
+    }
+    z = x + 1;
+    if (z > 10) {
+        z = 0;
+    }
+    return z;
+}
