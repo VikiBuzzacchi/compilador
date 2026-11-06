@@ -10,3 +10,6 @@ parser.gv
 *.ass
 *.out
 c-tds
+*.lex
+*.sint
+

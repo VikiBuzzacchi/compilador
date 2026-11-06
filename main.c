@@ -8,6 +8,9 @@
 #include "optimizer.h"
 
 extern int yyparse();
+extern int yylex(void);   
+extern char *yytext;           
+extern int yylineno;  
 extern struct node *root;
 extern int lexical_errors;
 extern int syntax_errors;
@@ -27,7 +30,7 @@ static void make_out_name(const char *input, const char *ext, char *dst, size_t 
 }
 
 
-enum target { T_NONE, T_FRONT, T_CODINTER, T_ASSEMBLY };
+enum target { T_NONE, T_SCAN, T_PARSE, T_CODINTER, T_ASSEMBLY };    
 
 int main(int argc, char **argv) {
     enum target target = T_NONE;
@@ -53,7 +56,8 @@ int main(int argc, char **argv) {
             const char *t = argv[++i];
             if (strcmp(t, "codinter") == 0) target = T_CODINTER;
             else if (strcmp(t, "assembly") == 0) target = T_ASSEMBLY;
-            else if (strcmp(t, "scan") == 0 || strcmp(t, "parse") == 0) target = T_FRONT;
+            else if (strcmp(t, "scan") == 0) target = T_SCAN;     
+            else if (strcmp(t, "parse") == 0) target = T_PARSE; 
         } else if (strcmp(argv[i], "-o") == 0 && i + 1 < argc) {
             exe_name = argv[++i];
         } else if (strcmp(argv[i], "-debug") == 0) {
@@ -72,6 +76,29 @@ int main(int argc, char **argv) {
             perror("No se pudo abrir el archivo");
             return 1;
         }
+    }
+
+    /* -target scan solo hace el análisis léxico. Escribe <nombre>.lex con una
+       línea por lexema ("línea N: texto"); con entrada por stdin lo imprime en consola. */
+    if (target == T_SCAN) {
+        FILE *lex_out = stdout;
+        if (input_filename) {
+            char lex_name[512];
+            make_out_name(input_filename, ".lex", lex_name, sizeof(lex_name));
+            lex_out = fopen(lex_name, "w");
+            if (!lex_out) {
+                perror("No se pudo crear el archivo .lex");
+                return 1;
+            }
+        }
+        while (yylex() != 0)
+            fprintf(lex_out, "línea %d: %s\n", yylineno, yytext);
+        if (lex_out != stdout) fclose(lex_out);
+        if (lexical_errors > 0) {
+            printf("Errores léxicos: %d\n", lexical_errors);
+            return 1;
+        }
+        return 0;
     }
 
 
@@ -115,8 +142,19 @@ int main(int argc, char **argv) {
             }
         } else if (target == T_ASSEMBLY && !input_filename) {
             gen_object_code(code, stdout, opts.tempslots, debug);
-        } else if (target == T_FRONT || (target == T_NONE && !input_filename)) {
-            /* Solo análisis (entrada por stdin sin target, o scan/parse) */
+        } else if (target == T_PARSE || (target == T_NONE && !input_filename)) {
+            /* -target parse escribe <nombre>.sint; entrada por stdin sin target solo analiza */
+            if (target == T_PARSE && input_filename) {
+                char sint_name[512];
+                make_out_name(input_filename, ".sint", sint_name, sizeof(sint_name));
+                FILE *s = fopen(sint_name, "w");
+                if (s) {
+                    fprintf(s, "Análisis sintáctico exitoso\n");
+                    fclose(s);
+                } else {
+                    fprintf(stderr, "No se pudo crear el archivo %s\n", sint_name);
+                }
+            }
             if (debug) printf("\n--- Análisis sintáctico exitoso ---\n");
         } else {
             /* T_ASSEMBLY o T_NONE con archivo: se genera <nombre>.ass */
