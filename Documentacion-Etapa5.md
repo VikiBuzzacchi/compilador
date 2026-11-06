@@ -333,11 +333,69 @@ El compilador termina con código 1 y no genera `.ass` ni `.out`. El análisis (
 Encontradas al comparar el compilador con `00-TDS-proyecto.pdf` y `01-TDS-spec-lenguaje.pdf`.
 
 - [x] **`_` en identificadores.** La gramática permite `⟨alpha_num⟩ → ⟨alpha⟩ | ⟨digit⟩ | _`, pero el lexer usa `[a-zA-Z][a-zA-Z0-9]*` y `mi_var` da error léxico. Cambiar a `[a-zA-Z][a-zA-Z0-9_]*`.
-- [ ] **Métodos con retorno que llegan al final sin `return`.** La spec dice que un método que retorna un valor "no puede alcanzar el fin del método". Hoy `int f() { x = 1; }` compila sin error y devuelve 0. Falta un chequeo semántico: que todo camino del cuerpo termine en `return` (un `if` cuenta solo si tiene `else` y las dos ramas retornan).
+- [x] **Métodos con retorno que llegan al final sin `return`.** La spec dice que un método que retorna un valor "no puede alcanzar el fin del método". Hoy `int f() { x = 1; }` compila sin error y devuelve 0. Falta un chequeo semántico: que todo camino del cuerpo termine en `return` (un `if` cuenta solo si tiene `else` y las dos ramas retornan).
 - [x] **Opción `-opt [optimización]`.** Implementada; ver "Optimizaciones opcionales: opción `-opt`".
-- [ ] **Salidas `.lex` / `.sint` y extensión `.ctds`.** Con `-target scan`/`parse` la spec pide generar un archivo con extensión según la etapa, y el archivo de entrada debe ser `.ctds`. Hoy no se generan esos archivos y los tests son `.txt`. Consultar con la cátedra si se evalúan.
+- [x] **Salidas `.lex` / `.sint` y extensión `.ctds`.** Con `-target scan`/`parse` la spec pide generar un archivo con extensión según la etapa, y el archivo de entrada debe ser `.ctds`. Hoy no se generan esos archivos y los tests son `.txt`. Consultar con la cátedra si se evalúan.
 - [ ] **Literales float.** La spec define `digit+ . digit+`. El lexer también acepta `1.`, `.5` y exponentes (`1e5`). Documentar como extensión o restringir.
 - [x] **Error claro para `float` en la generación de código.** Implementado; ver "`float` en la generación de código: error en lugar de código incorrecto".
 - [ ] **Literal `-2147483648`.** `2147483648` se rechaza en el lexer antes de aplicar el `-` unario, así que el mínimo no se puede escribir !!!!!
 - [ ] **`extern` como extensión.**  un programa que use `extern` como identificador deja de compilar.
 - [ ] **Documentación entrega final.** 
+
+
+
+## Correcciones a etapas anteriores y salidas de `scan` y `parse`
+ 
+Se cerraron tres diferencias entre el compilador y la especificación (gramática del lenguaje y tabla de opciones de línea de comandos).
+ 
+### 1. Guion bajo en identificadores (lexer, etapa 1)
+ 
+**Problema.** La gramática define `⟨alpha num⟩ → ⟨alpha⟩ | ⟨digit⟩ | _`, pero el lexer aceptaba solo `[a-zA-Z][a-zA-Z0-9]*`. Un programa válido con `mi_var` o `es_par` daba error léxico en el `_` y, a continuación, un error sintáctico por el nombre partido en dos.
+ 
+**Solución (`lexer.l`).** La regla de identificadores pasa a ser:
+```
+[a-zA-Z][a-zA-Z0-9_]*
+```
+
+### 2. Métodos con valor que alcanzan el fin sin `return` (semántico, etapa 2)
+ 
+**Problema.** La especificación dice que un método que retorna un valor no puede alcanzar el fin de su cuerpo: solo retorna con una sentencia `return`.
+ 
+**Solución (`ast.c`).** `new_method_decl` verifica que el cuerpo retorne en todos los caminos y, si no, reporta con `sem_error`:
+ 
+```
+Error semántico en la línea N: el método 'f' debe retornar un valor en todos los caminos
+```
+ 
+La decisión la toman `block_returns` y `list_returns`, que recorren las sentencias de un bloque en orden y devuelven 1 en cuanto encuentran una que garantiza el retorno:
+ 
+```c
+int a() { int x; x = 1; }                                      // error
+int b(boolean c) { if (c) { return 1; } else { return 2; } }   // ok
+int d(boolean c) { if (c) { return 1; } }                      // error
+int f() { { return 1; } }                                      // ok
+```
+ 
+**Decisiones y casos borde.**
+- **Los métodos `void` y los `extern` no se chequean.** Un `void` puede terminar sin `return`. Un `extern` no tiene cuerpo (el puntero llega en `NULL`), por lo que la condición incluye `body` y `!sym->is_extern`. 
+
+### 3. Salidas de `-target scan` y `-target parse` 
+ 
+**Problema.** La especificación indica que, sin `-target`, la compilación genera el archivo de la etapa o el ejecutable, y que `-target <etapa>` corta la compilación en esa etapa. `scan` y `parse` no generaban ningún archivo: compartían el destino `T_FRONT` y solo analizaban.
+ 
+**Solución (`main.c`).** `T_FRONT` se separa en `T_SCAN` y `T_PARSE`:
+
+| `-target scan` | 
+Solo análisis léxico: recorre los tokens con `yylex()`, sin pasar por el parser 
+Salida -> `nombre.lex`: un lexema por línea, `línea N: texto` |
+
+| `-target parse` | 
+Análisis sintáctico y semántico completos 
+Salida -> `nombre.sint`: una línea, `Análisis sintáctico exitoso` |
+ 
+- **`.gitignore`:** se agregaron `*.lex` y `*.sint`.
+
+**Decisiones.**
+- **No se valida la extensión `.ctds`.** El compilador acepta cualquier nombre de entrada y nombra las salidas con el archivo sin su extensión (`x.ctds` produce `x.lex`, `x.sint`, `x.ci`, `x.ass`, `x.out`). Validarla rompería los tests existentes, que usan `.txt`, y los archivos `.ctds` funcionan igual.
+- **`.lex` lista el lexema y su línea, no el nombre del token.** La especificación no define el contenido. El lexema alcanza para ver qué reconoció el scanner, y el nombre del token exigiría tocar cada regla de `lexer.l`.
+- **`.sint` solo informa el resultado.** La etapa 1 permite que la salida del parser sea el árbol "o simplemente si la entrada es correcta o no". Volcar el árbol exige implementar `print_ast`, que hoy está vacío.
