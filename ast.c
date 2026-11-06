@@ -88,6 +88,32 @@ struct node *new_var_decl(struct symbol *sym, int line) {
     return n;
 }
 
+// Todo camino de la lista de sentencias termina en return
+static int list_returns(struct node *list);
+
+static int block_returns(struct node *b) {
+    if (!b) return 0;
+    return list_returns(b->kind == NODE_BLOCK ? b->left : b);
+}
+
+static int list_returns(struct node *list) {
+    for (struct node *s = list; s; s = s->next) {
+        switch (s->kind) {
+        case NODE_RETURN:
+            return 1;
+        case NODE_BLOCK:
+            if (block_returns(s)) return 1;
+            break;
+        case NODE_IF:
+            if (s->third && block_returns(s->right) && block_returns(s->third)) return 1;
+            break;
+        default:
+            break;
+        }
+    }
+    return 0;
+}
+
 struct node *new_method_decl(struct symbol *sym, struct node *params, struct node *body, int line) {
     struct node *n = new_node(NODE_METHOD_DECL, line);
     n->sym = sym;
@@ -96,6 +122,10 @@ struct node *new_method_decl(struct symbol *sym, struct node *params, struct nod
     if (sym) {
         n->id = sym->name;
         n->data_type = sym->type;
+        // un método con valor de retorno no puede alcanzar el fin del cuerpo
+        if (sym->type != TYPE_VOID && body && !sym->is_extern && !block_returns(body))
+            sem_error(line, "el método '%s' debe retornar un valor en todos los caminos",
+                      sym->name);
     }
     return n;
 }

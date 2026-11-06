@@ -54,7 +54,7 @@
 
     /* Identificadores */
 
-[a-zA-Z][a-zA-Z0-9]* { yylval.id = strdup(yytext); return ID; }
+[a-zA-Z][a-zA-Z0-9_]* { yylval.id = strdup(yytext); return ID; }
 
     /* Literal entero */
 

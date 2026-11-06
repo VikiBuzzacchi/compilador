@@ -332,7 +332,7 @@ El compilador termina con código 1 y no genera `.ass` ni `.out`. El análisis (
 
 Encontradas al comparar el compilador con `00-TDS-proyecto.pdf` y `01-TDS-spec-lenguaje.pdf`.
 
-- [ ] **`_` en identificadores.** La gramática permite `⟨alpha_num⟩ → ⟨alpha⟩ | ⟨digit⟩ | _`, pero el lexer usa `[a-zA-Z][a-zA-Z0-9]*` y `mi_var` da error léxico. Cambiar a `[a-zA-Z][a-zA-Z0-9_]*`.
+- [x] **`_` en identificadores.** La gramática permite `⟨alpha_num⟩ → ⟨alpha⟩ | ⟨digit⟩ | _`, pero el lexer usa `[a-zA-Z][a-zA-Z0-9]*` y `mi_var` da error léxico. Cambiar a `[a-zA-Z][a-zA-Z0-9_]*`.
 - [ ] **Métodos con retorno que llegan al final sin `return`.** La spec dice que un método que retorna un valor "no puede alcanzar el fin del método". Hoy `int f() { x = 1; }` compila sin error y devuelve 0. Falta un chequeo semántico: que todo camino del cuerpo termine en `return` (un `if` cuenta solo si tiene `else` y las dos ramas retornan).
 - [x] **Opción `-opt [optimización]`.** Implementada; ver "Optimizaciones opcionales: opción `-opt`".
 - [ ] **Salidas `.lex` / `.sint` y extensión `.ctds`.** Con `-target scan`/`parse` la spec pide generar un archivo con extensión según la etapa, y el archivo de entrada debe ser `.ctds`. Hoy no se generan esos archivos y los tests son `.txt`. Consultar con la cátedra si se evalúan.

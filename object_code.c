@@ -33,7 +33,7 @@ static int npending;
 
 static const char *arg_regs[6] = { "%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9" };
 
-/* ---------- slots ---------- */
+/* slots */
 
 static void note_sym(struct symbol *s) {
     if (!s || s->is_global) return;
@@ -170,7 +170,7 @@ static void store(const char *reg, struct operand *o) {
     fprintf(out, "    movq %s, %s\n", reg, b);
 }
 
-/* ---------- una instrucción ---------- */
+/* una instrucción */
 
 static void gen_binop(struct tac *i) {
     load(&i->a, "%r10");
@@ -273,7 +273,7 @@ static void gen_instr(struct tac *i) {
     }
 }
 
-/* ---------- función ---------- */
+/* función */
 
 /* Genera la función que empieza en 'begin'. Devuelve la instrucción siguiente a su FUNC_END. */
 static struct tac *gen_function(struct tac *begin) {
@@ -359,7 +359,7 @@ static struct tac *gen_function(struct tac *begin) {
     return end ? end->next : NULL;
 }
 
-/* ---------- programa ---------- */
+/* programa */
 
 void gen_object_code(struct tac *list, FILE *o, int reuse, int debug) {
     out = o ? o : stdout;
