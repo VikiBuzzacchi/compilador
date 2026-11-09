@@ -1,0 +1,7 @@
+func begin main
+  x = 10
+  x_1 = 20
+  x_2 = 30
+  return x_1
+func end main
+

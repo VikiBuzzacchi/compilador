@@ -1,0 +1,12 @@
+int x;
+int x_1;
+
+int main() {
+    x = 10;
+    x_1 = 20;
+    {
+        int x;
+        x = 30;
+    }
+    return x_1;
+}

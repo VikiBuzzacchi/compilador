@@ -62,21 +62,26 @@ static char *var_name(struct node *n)
 {
     if (!n->sym)
         return n->id;
-    int dup = 0;
     for (int i = 0; i < nseen; i++)
-    {
         if (seen_syms[i] == n->sym)
             return seen_names[i];
-        if (strcmp(seen_syms[i]->name, n->sym->name) == 0)
-            dup++;
-    }
     if (nseen >= MAX_VARS)
         return n->id;
     char buf[256];
-    if (dup)
-        snprintf(buf, sizeof(buf), "%s_%d", n->sym->name, dup);
-    else
-        snprintf(buf, sizeof(buf), "%s", n->sym->name);
+    int suffix = 0;
+    for (;;)
+    {
+        if (suffix)
+            snprintf(buf, sizeof(buf), "%s_%d", n->sym->name, suffix);
+        else
+            snprintf(buf, sizeof(buf), "%s", n->sym->name);
+        int used = 0;
+        for (int i = 0; i < nseen; i++)
+            if (strcmp(seen_names[i], buf) == 0) { used = 1; break; }
+        if (!used)
+            break;
+        suffix++;
+    }
     seen_syms[nseen] = n->sym;
     seen_names[nseen] = strdup(buf);
     return seen_names[nseen++];

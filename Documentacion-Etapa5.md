@@ -12,7 +12,7 @@ Antes de optimizar se corrigieron problemas de la etapa 4. Las optimizaciones ca
 
 ### 2. Aritmética de 64 bits en lugar del `int` de 32 bits
 
-El lexer limita los literales a 32 bits (`2147483647`), pero el assembly calculaba con 64 (`addq`, `imulq`, ...). Eso causaba tres problemas:
+El lexer limita los literales a 32 bits (`2147483647`), salvo `2147483648`, que se acepta como magnitud de `INT_MIN` (ver "Literal `-2147483648` (`INT_MIN`)"). El assembly, en cambio, calculaba con 64 (`addq`, `imulq`, ...). Eso causaba tres problemas:
 
 - **Overflow distinto al de C.** `x = 2147483647; x = x + 1;` daba `2147483648` (positivo) en vez de `-2147483648`, así que `x < 0` era falso.
 - **Funciones externas en C.** Una función C que devuelve `int` deja el resultado solo en `%eax`, y la mitad alta de `%rax` queda en 0. Un `-1` llegaba como `4294967295`, positivo. Se verificó enlazando el assembly generado con `int neg(void) { return -1; }` en C: antes `neg() < 0` daba falso, ahora da verdadero. Lo mismo pasa con `bool` de C, que viene solo en `%al`.
@@ -31,7 +31,7 @@ El lexer limita los literales a 32 bits (`2147483647`), pero el assembly calcula
 
 ### 3. Test para assembly
 **Solución (`run_tests.sh`):** ahora también recorre `tests/asm/*.txt`. Por cada uno compila, ejecuta y compara el exit code con el valor de la primera línea `// exit: N`. Los tests sin esa línea se saltean. Se agregó `// exit:` a los tests existentes, con valores verificados contra gcc, y un test nuevo: int32.
-Antes de la corrección 2, test int32 fallaba con `exit 1`. Ahora pasan los 45 tests.
+Antes de la corrección 2, test int32 fallaba con `exit 1`. Ahora pasan los 84 tests.
 
 ### Métodos `extern`
 
@@ -91,6 +91,8 @@ c-tds -opt prog.ctds                              # igual que -opt all
 c-tds -opt constfold,deadcode prog.ctds           # solo esas dos
 c-tds -target codinter -opt all prog.ctds         # escribe prog.opt (TAC optimizado)
 ```
+
+### Resumen de optimizaciones
 
 | Nombre | Optimización | Sobre | Estado |
 |---|---|---|---|
@@ -328,7 +330,7 @@ El compilador termina con código 1 y no genera `.ass` ni `.out`. El análisis (
 
 **Alternativa descartada:** eliminar código muerto también en el AST, después del plegado (`if (true)`, `while (false)`, sentencias después de `return`), para que esas etiquetas nunca lleguen al TAC. Con el punto fijo, solo ahorraría vueltas sin mejorar el resultado, y requiere cuidar las declaraciones dentro de los bloques que se eliminan.
 
-## diferencias con la especificación 
+## Diferencias con la especificación
 
 Encontradas al comparar el compilador con `00-TDS-proyecto.pdf` y `01-TDS-spec-lenguaje.pdf`.
 
@@ -340,7 +342,7 @@ Encontradas al comparar el compilador con `00-TDS-proyecto.pdf` y `01-TDS-spec-l
 - [x] **Error claro para `float` en la generación de código.** Implementado; ver "`float` en la generación de código: error en lugar de código incorrecto".
 - [x] **Literal `-2147483648`.** `2147483648` se rechazaba en el lexer antes de aplicar el `-` unario, así que el mínimo no se podía escribir. Implementado; ver "Literal `-2147483648` (`INT_MIN`)".
 - [x] **`extern` como extensión.** Un programa que use `extern` como identificador deja de compilar. Documentado en "Extensiones realizadas al lenguaje".
-- [ ] **Documentación entrega final.** 
+- [x] **Documentación entrega final.** Revisión final completada: documentación, código y tests verificados. Ver "Extensiones realizadas al lenguaje" y las secciones de optimizaciones.
 
 
 
@@ -460,7 +462,7 @@ int f() { { return 1; } }                                      // ok
 ```
  
 **Decisiones y casos borde.**
-- **Los métodos `void` y los `extern` no se chequean.** Un `void` puede terminar sin `return`. Un `extern` no tiene cuerpo (el puntero llega en `NULL`), por lo que la condición incluye `body` y `!sym->is_extern`. 
+- **Los métodos `void` y los `extern` no se chequean.** Un `void` puede terminar sin `return`. Un `extern` no tiene cuerpo (el puntero llega en `NULL`), así que la condición exige `body`: no hay nada que recorrer. La bandera `is_extern` se asigna después, en `parser.y`, pero no hace falta para este chequeo.
 
 ### 3. Salidas de `-target scan` y `-target parse` 
  
