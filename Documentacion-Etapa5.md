@@ -339,7 +339,7 @@ Encontradas al comparar el compilador con `00-TDS-proyecto.pdf` y `01-TDS-spec-l
 - [x] **Literales float.** La spec define `digit+ . digit+`, pero el lexer también acepta `1.`, `.5` y exponentes (`1e5`). Documentada como extensión; ver "Extensiones realizadas al lenguaje".
 - [x] **Error claro para `float` en la generación de código.** Implementado; ver "`float` en la generación de código: error en lugar de código incorrecto".
 - [x] **Literal `-2147483648`.** `2147483648` se rechazaba en el lexer antes de aplicar el `-` unario, así que el mínimo no se podía escribir. Implementado; ver "Literal `-2147483648` (`INT_MIN`)".
-- [ ] **`extern` como extensión.**  un programa que use `extern` como identificador deja de compilar.
+- [x] **`extern` como extensión.** Un programa que use `extern` como identificador deja de compilar. Documentado en "Extensiones realizadas al lenguaje".
 - [ ] **Documentación entrega final.** 
 
 
@@ -363,6 +363,41 @@ Es una extensión respecto de la gramática formal, no del análisis semántico:
 **Consecuencia conocida.** Al aceptar floats como en C, `1.2.3` no es un error léxico: el lexer reconoce `1.2` y `.3` como dos `CONSTFLOAT` y el error lo reporta el parser como sintáctico (ver `Documentacion-Etapa2.md`). `run_tests.sh` compara esa salida en `test6error`.
 
 **No afecta al back-end.** La generación de código rechaza cualquier programa con `float` con un error explícito (ver "`float` en la generación de código: error en lugar de código incorrecto"), así que la extensión solo se observa en el análisis y en el código intermedio.
+
+### Métodos `extern`
+
+`extern` es una extensión del lenguaje: permite declarar un método sin cuerpo cuando su definición está afuera, en C, y se enlaza al generar el ejecutable.
+
+```c
+int suma3(int a, int b, int c) extern;
+boolean esPar(int x) extern;
+int abs(int x) extern;
+```
+
+```sh
+./compilador prog.ctds lib.c -o prog    # lib.c (o .o, .s) define los extern
+```
+
+- **Palabra reservada.** `extern` no aparece en la especificación. Al agregarla como palabra reservada, un programa que la use como identificador deja de compilar.
+- **Declaración antes de usar.** Igual que el resto de los métodos, el `extern` tiene que aparecer antes de sus llamadas; el lenguaje no tiene forward declarations.
+- **Enlazado.** El archivo de entrada (`.ctds`) va primero y los archivos que definen los extern (`.c`, `.o` o `.s`) después. En los tests, la línea `// link:` indica qué archivos enlazar.
+- **Contrato ABI.** Solo se soportan `int`, `boolean` y `void`:
+  - un extern `int` debe corresponder a una función C que devuelve `int`;
+  - un extern `boolean` debe devolver `bool`/`_Bool` o un `int` que valga 0 o 1;
+  - `float` se rechaza en la generación de código, y no hay punteros, strings, `long`, structs ni varargs;
+  - en los argumentos, `int` y `boolean` no son convertibles entre sí (solo `int` ↔ `float`).
+
+La implementación está detallada en "Métodos `extern`": el TAC no genera `func begin`/`func end` para ellos y solo aparecen en los `call`. Los tests son `tests/asm/extern.txt` + `tests/asm/lib.c`, `test29error`, `test30` y `test31error`.
+
+**Limitaciones conocidas.**
+
+| Caso | Workaround |
+|---|---|
+| Llamar a un extern declarado más abajo | Declarar los extern al principio del archivo |
+| Rutas con espacios o metacaracteres en `-o` o en los archivos de enlace | Evitarlas: el comando de enlace no las cita |
+| Archivo de entrada no primero en la línea de comandos | Poner siempre el `.ctds` primero |
+| Firma de la función C distinta a la declarada | Respetar el contrato ABI (`int`/`boolean`/`void`) |
+| Falla de enlace | El mensaje del compilador dice "Error al ensamblar"; revisar la salida de `gcc` |
 
 
 
