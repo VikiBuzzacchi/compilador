@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 #include "ast.h"
 #include "symbol_table.h"
 #include <stdarg.h>
@@ -262,6 +263,35 @@ struct node *new_int(int val, int line) {
     n->value.ival = val;
     n->data_type = TYPE_INT;
     return n;
+}
+
+/* 2147483648 no entra en un int: se marca y solo se acepta como operando de '-' unario. */
+struct node *new_int_min_mag(int line) {
+    struct node *n = new_int(INT_MIN, line);
+    n->is_int_min_mag = 1;
+    return n;
+}
+
+/* Recorre el AST: -2147483648 se convierte en el literal INT_MIN. Cualquier otro uso
+   de 2147483648 (suelto, en una resta binaria, etc.) es un error semántico. */
+void resolve_int_min(struct node *n) {
+    for (; n; n = n->next) {
+        if (n->kind == NODE_UNOP && n->op == OP_NEG &&
+            n->left && n->left->kind == NODE_INT && n->left->is_int_min_mag) {
+            n->kind = NODE_INT;
+            n->op = OP_NONE;
+            n->value.ival = INT_MIN;
+            n->data_type = TYPE_INT;
+            n->is_int_min_mag = 0;
+            n->left = n->right = n->third = NULL;
+        } else {
+            resolve_int_min(n->left);
+            resolve_int_min(n->right);
+            resolve_int_min(n->third);
+            if (n->kind == NODE_INT && n->is_int_min_mag)
+                sem_error(n->line, "entero '2147483648' fuera de rango (solo se admite como -2147483648)");
+        }
+    }
 }
 
 struct node *new_float(float val, int line) {

@@ -58,10 +58,14 @@
 
     /* Literal entero */
 
-[0-9]+      {   long valor = strtol(yytext, NULL, 10);
-                if (valor > 2147483647L) {
+[0-9]+      {   unsigned long long valor = strtoull(yytext, NULL, 10);
+                if (valor > 2147483648ULL) {
                     lexical_errors++;
                     fprintf(stderr, "Error léxico: entero '%s' fuera de rango en la línea %d\n", yytext, yylineno);
+                } else if (valor == 2147483648ULL) {
+                    /* 2147483648 solo es válido como -2147483648 (INT_MIN).
+                       El parser/AST deciden si está negado. */
+                    return CONSTINT_MIN;
                 }
                 yylval.val = (int) valor;
                 return CONSTINT; }

@@ -91,6 +91,7 @@ static void check_main(void) {
 %token INT BOOLEAN TRUE FALSE
 %token <id> ID
 %token <val> CONSTINT
+%token CONSTINT_MIN
 %token <fval> CONSTFLOAT
 %token RETURN VOID
 %token ELSE IF WHILE FLOAT EXTERN
@@ -236,6 +237,7 @@ expr: ID                    { $$ = new_id($1, @1.first_line); }
     ;
 
 literal: CONSTINT       { $$ = new_int($1, cur_line); }
+       | CONSTINT_MIN   { $$ = new_int_min_mag(cur_line); }
        | CONSTFLOAT     { $$ = new_float($1, cur_line); }
        | bool_literal   { $$ = $1; }
        ;

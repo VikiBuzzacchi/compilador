@@ -338,7 +338,7 @@ Encontradas al comparar el compilador con `00-TDS-proyecto.pdf` y `01-TDS-spec-l
 - [x] **Salidas `.lex` / `.sint` y extensión `.ctds`.** Con `-target scan`/`parse` la spec pide generar un archivo con extensión según la etapa, y el archivo de entrada debe ser `.ctds`. Hoy no se generan esos archivos y los tests son `.txt`. Consultar con la cátedra si se evalúan.
 - [x] **Literales float.** La spec define `digit+ . digit+`, pero el lexer también acepta `1.`, `.5` y exponentes (`1e5`). Documentada como extensión; ver "Extensiones realizadas al lenguaje".
 - [x] **Error claro para `float` en la generación de código.** Implementado; ver "`float` en la generación de código: error en lugar de código incorrecto".
-- [ ] **Literal `-2147483648`.** `2147483648` se rechaza en el lexer antes de aplicar el `-` unario, así que el mínimo no se puede escribir !!!!!
+- [x] **Literal `-2147483648`.** `2147483648` se rechazaba en el lexer antes de aplicar el `-` unario, así que el mínimo no se podía escribir. Implementado; ver "Literal `-2147483648` (`INT_MIN`)".
 - [ ] **`extern` como extensión.**  un programa que use `extern` como identificador deja de compilar.
 - [ ] **Documentación entrega final.** 
 
@@ -363,6 +363,32 @@ Es una extensión respecto de la gramática formal, no del análisis semántico:
 **Consecuencia conocida.** Al aceptar floats como en C, `1.2.3` no es un error léxico: el lexer reconoce `1.2` y `.3` como dos `CONSTFLOAT` y el error lo reporta el parser como sintáctico (ver `Documentacion-Etapa2.md`). `run_tests.sh` compara esa salida en `test6error`.
 
 **No afecta al back-end.** La generación de código rechaza cualquier programa con `float` con un error explícito (ver "`float` en la generación de código: error en lugar de código incorrecto"), así que la extensión solo se observa en el análisis y en el código intermedio.
+
+
+
+## Literal `-2147483648` (`INT_MIN`)
+
+**Problema.** La spec define enteros de 32 bits con signo, así que `-2147483648` es un valor válido. Pero `2147483648` excede `INT_MAX` y el lexer lo rechazaba como "entero fuera de rango" antes de que el parser aplicara el `-` unario, así que el mínimo no se podía escribir.
+
+**Solución.** Se distingue la magnitud `2147483648` y se valida según el contexto:
+
+- **`lexer.l`:** el literal `2147483648` devuelve el token `CONSTINT_MIN` en lugar de ser un error léxico. Las magnitudes mayores siguen dando error léxico (así `test4error` no cambia).
+- **`parser.y`:** `literal: CONSTINT_MIN` crea un `NODE_INT` marcado con `is_int_min_mag` (`new_int_min_mag`, `ast.c`).
+- **`ast.c`: `resolve_int_min`** recorre el AST después del parseo. Si el nodo marcado es el operando directo del `-` unario, lo convierte en el literal `INT_MIN`. Funciona también con paréntesis (`-(2147483648)`), porque no crean nodo. Cualquier otro uso (`x = 2147483648;`, `5 - 2147483648`) es un error semántico:
+  ```
+  Error semántico en la línea 3: entero '2147483648' fuera de rango (solo se admite como -2147483648)
+  ```
+- **`main.c`:** llama a `resolve_int_min(root)` después de `yyparse()` y antes de las optimizaciones y la generación de código.
+
+**Por qué después del parseo.** El lexer no puede saber si un `-` es unario: en `5 - 2147483648` es una resta binaria y el literal sigue fuera de rango, mientras que en `-2147483648` es el signo del mínimo. La decisión necesita el árbol.
+
+**Tests.**
+
+| Archivo | Qué verifica |
+|---|---|
+| `tests/asm/intmin.txt` | `-2147483648` compila y vale exactamente `INT_MIN` (`x + 2147483647 == -1`). Corre sin optimizar y con `-opt all` |
+| `tests/cases/test36error.txt` | `2147483648` suelto y en una resta binaria dan dos errores semánticos |
+| `tests/cases/test4error.txt` | Sin cambios: `99999999999` sigue siendo error léxico |
 
 
 

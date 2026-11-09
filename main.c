@@ -105,6 +105,10 @@ int main(int argc, char **argv) {
     init_symbol_table();
     int ok = yyparse();
 
+    /* 2147483648 solo es válido como -2147483648: se resuelve después del parse. */
+    if (ok == 0 && root)
+        resolve_int_min(root);
+
     
     if (ok == 0 && lexical_errors == 0 && syntax_errors == 0 && semantic_errors == 0) {
         /*Si el programa tiene un float y quiero generar ASSEMBLY notifico

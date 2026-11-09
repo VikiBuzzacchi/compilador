@@ -40,6 +40,7 @@ struct node {
         int ival;
         float fval;
     } value;                    // literales
+    int is_int_min_mag;         // literal 2147483648 pendiente de resolver como -2147483648
     char *id;                   // NODE_ID 
     struct symbol *sym;         // NULL si el identificador no está declarado
     struct node *left;
@@ -61,8 +62,12 @@ struct node *new_return(struct node *expr, int line);
 struct node *new_binop(enum op_type op, struct node *left, struct node *right, int line);
 struct node *new_unop(enum op_type op, struct node *expr, int line);
 struct node *new_int(int val, int line);
+struct node *new_int_min_mag(int line);
 struct node *new_float(float val, int line);
 struct node *new_bool(int val, int line);
+
+// Convierte -2147483648 en el literal INT_MIN y reporta los usos no negados de 2147483648.
+void resolve_int_min(struct node *n);
 
 // Contador de errores semánticos (se define en ast.c)
 extern int semantic_errors;

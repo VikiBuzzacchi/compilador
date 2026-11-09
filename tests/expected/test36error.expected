@@ -1,0 +1,6 @@
+Error semántico en la línea 3: entero '2147483648' fuera de rango (solo se admite como -2147483648)
+Error semántico en la línea 4: entero '2147483648' fuera de rango (solo se admite como -2147483648)
+
+Fallo en el análisis sintáctico.
+Errores semánticos: 2
+Se encontraron 2 errores en total.

@@ -1,0 +1,11 @@
+// exit: 0
+// El mínimo entero -2147483648 se puede escribir como literal negativo.
+// Se verifica el valor exacto: INT_MIN + INT_MAX == -1.
+int main() {
+    int x;
+    x = -2147483648;
+    if (x < 0 && x + 2147483647 == -1) {
+        return 0;
+    }
+    return 1;
+}
