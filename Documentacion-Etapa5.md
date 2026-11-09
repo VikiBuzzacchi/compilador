@@ -336,11 +336,33 @@ Encontradas al comparar el compilador con `00-TDS-proyecto.pdf` y `01-TDS-spec-l
 - [x] **Métodos con retorno que llegan al final sin `return`.** La spec dice que un método que retorna un valor "no puede alcanzar el fin del método". Hoy `int f() { x = 1; }` compila sin error y devuelve 0. Falta un chequeo semántico: que todo camino del cuerpo termine en `return` (un `if` cuenta solo si tiene `else` y las dos ramas retornan).
 - [x] **Opción `-opt [optimización]`.** Implementada; ver "Optimizaciones opcionales: opción `-opt`".
 - [x] **Salidas `.lex` / `.sint` y extensión `.ctds`.** Con `-target scan`/`parse` la spec pide generar un archivo con extensión según la etapa, y el archivo de entrada debe ser `.ctds`. Hoy no se generan esos archivos y los tests son `.txt`. Consultar con la cátedra si se evalúan.
-- [ ] **Literales float.** La spec define `digit+ . digit+`. El lexer también acepta `1.`, `.5` y exponentes (`1e5`). Documentar como extensión o restringir.
+- [x] **Literales float.** La spec define `digit+ . digit+`, pero el lexer también acepta `1.`, `.5` y exponentes (`1e5`). Documentada como extensión; ver "Extensiones realizadas al lenguaje".
 - [x] **Error claro para `float` en la generación de código.** Implementado; ver "`float` en la generación de código: error en lugar de código incorrecto".
 - [ ] **Literal `-2147483648`.** `2147483648` se rechaza en el lexer antes de aplicar el `-` unario, así que el mínimo no se puede escribir !!!!!
 - [ ] **`extern` como extensión.**  un programa que use `extern` como identificador deja de compilar.
 - [ ] **Documentación entrega final.** 
+
+
+
+## Extensiones realizadas al lenguaje
+
+Además de lo que define la gramática de la especificación, el compilador acepta las siguientes construcciones.
+
+### Literales `float` con formato de C
+
+La producción formal de la especificación es `⟨float literal⟩ → ⟨digit⟩ ⟨digit⟩* . ⟨digit⟩ ⟨digit⟩*` (parte entera y fraccionaria obligatorias). Sin embargo, el texto de la spec también dice que "los literales reales son iguales a los utilizados en C". El lexer (`lexer.l`) sigue esa segunda definición y acepta, además de `1.5`:
+
+| Forma | Ejemplo | Regla del lexer |
+|---|---|---|
+| Sin parte fraccionaria | `86.` | `[0-9]+"."[0-9]*([eE][+-]?[0-9]+)?` |
+| Sin parte entera | `.05` | `[0-9]*"."[0-9]+([eE][+-]?[0-9]+)?` |
+| Notación científica | `5e10`, `3.6e-8` | sufijo `([eE][+-]?[0-9]+)?` / `[0-9]+[eE][+-]?[0-9]+` |
+
+Es una extensión respecto de la gramática formal, no del análisis semántico: `CONSTFLOAT` se trata igual en todas las etapas.
+
+**Consecuencia conocida.** Al aceptar floats como en C, `1.2.3` no es un error léxico: el lexer reconoce `1.2` y `.3` como dos `CONSTFLOAT` y el error lo reporta el parser como sintáctico (ver `Documentacion-Etapa2.md`). `run_tests.sh` compara esa salida en `test6error`.
+
+**No afecta al back-end.** La generación de código rechaza cualquier programa con `float` con un error explícito (ver "`float` en la generación de código: error en lugar de código incorrecto"), así que la extensión solo se observa en el análisis y en el código intermedio.
 
 
 
