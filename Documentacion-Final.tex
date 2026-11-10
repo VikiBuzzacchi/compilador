@@ -1,0 +1,239 @@
+% Documentación Final — Compilador C-TDS
+% Compilar con: xelatex Documentacion-Final.tex 
+
+\documentclass[11pt,a4paper]{article}
+
+\usepackage{fontspec}
+\setmonofont{DejaVu Sans Mono}[Scale=0.85]
+\usepackage[spanish,es-noshorthands,es-nodecimaldot]{babel}
+\usepackage[margin=2.2cm]{geometry}
+\usepackage{tabularx}
+\usepackage{ltablex}  
+\keepXColumns
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{needspace}
+\usepackage{xcolor}
+\usepackage{fancyvrb}
+\usepackage[hidelinks]{hyperref}
+
+\setlist{itemsep=2pt,topsep=4pt}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5pt}
+\renewcommand{\arraystretch}{1.25}
+
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\doc}[1]{(Doc.\ Etapa~#1)}
+
+
+\begin{document}
+
+\begin{center}
+  {\LARGE\bfseries Documentación Final --- Compilador C-TDS}\\[4pt]
+  Taller de Diseño de Software (Cod.\ 3306) --- 2026 \\[4pt]
+  Aguirre Sofía Trinidad, Astrada Camila, Buzzacchi Victoria
+\end{center}
+
+Resumen del proyecto. Cada punto remite a la documentación de su etapa que se encuentra en el repositorio. En cada documentación se encuentra el
+ detalle, los ejemplos y los tests que se usaron para verificar la implementación:
+
+\begin{tabularx}{\textwidth}{Ll}
+\toprule
+\textbf{Etapa} & \textbf{Archivo} \\
+\midrule
+1. Análisis léxico y sintáctico & \code{Documentacion-Etapa1.md} \\
+2. Tabla de símbolos, AST y análisis semántico & \code{Documentacion-Etapa2.md} \\
+3. Código intermedio (TAC) & \code{Documentacion-Etapa3.md} \\
+4. Código objeto x86-64 & \code{Documentacion-Etapa4.md} \\
+5. Optimizaciones y correcciones finales & \code{Documentacion-Etapa5.md} \\
+\bottomrule
+\end{tabularx}
+
+Uso, build y tests: \code{README.md}.
+
+% ---------------------------------------------------------------------------
+\section*{Arquitectura}
+
+\begin{Verbatim}[fontsize=\small,frame=single,framesep=6pt]
+fuente .ctds
+   │  lexer.l              tokens (Flex)
+   ▼
+parser.y                   gramática (Bison) + construcción del AST
+   │                       + tabla de símbolos + chequeos semánticos
+   ▼
+AST tipado ──► optimize_ast (constfold)                  optimizer.c
+   ▼
+build_tac ──► lista de TAC ──► optimize_tac (constprop + deadcode)
+   │                               │
+   │                               └─► .ci / .opt        -target codinter
+   ▼
+gen_object_code (tempslots) ──► .ass ──► gcc ──► .out    object_code.c
+\end{Verbatim}
+
+El compilador tiene dos mitades. El \textbf{front-end} analiza el programa en una sola pasada. \code{yyparse()} pide los tokens de a uno a \code{yylex()}. En cada reducción llama a un constructor del AST (\code{new\_*}), que resuelve los identificadores en la tabla de símbolos y chequea los tipos en ese momento. Al terminar, el resultado es un AST tipado en el que cada identificador apunta a su símbolo.
+
+Si hubo algún error léxico, sintáctico o semántico, el compilador reporta todos los errores encontrados y termina sin generar código. Si no, sigue el \textbf{back-end}, que transforma el programa en tres representaciones sucesivas:
+\begin{itemize}
+  \item el AST, sobre el que se pliegan constantes;
+  \item el código de tres direcciones (TAC), una lista de instrucciones sobre la que se propagan constantes y se elimina código inalcanzable;
+  \item el assembly x86-64, que \code{gcc} ensambla y enlaza para obtener el ejecutable.
+\end{itemize}
+
+Las optimizaciones son pasadas opcionales: solo corren las que se activan con \code{-opt}. \code{-target} corta la compilación en una etapa y escribe su salida:
+\begin{itemize}
+  \item \code{scan} $\rightarrow$ \code{.lex}
+  \item \code{parse} $\rightarrow$ \code{.sint}
+  \item \code{codinter} $\rightarrow$ \code{.ci} (o \code{.opt}, con optimizaciones)
+  \item \code{assembly} $\rightarrow$ \code{.ass}
+\end{itemize}
+Sin \code{-target} se hace todo el camino hasta el \code{.out}.
+
+\begin{tabularx}{\textwidth}{P{4.3cm}L}
+\toprule
+\textbf{Archivo} & \textbf{Responsabilidad} \\
+\midrule
+\code{lexer.l} & Tokens, comentarios, rango de enteros, símbolos inválidos \\
+\code{parser.y} & Gramática, precedencia, recuperación de errores, declaración de símbolos y apertura/cierre de niveles \\
+\code{symbol\_table.c/.h} & Pila de niveles; cada nivel es una lista de símbolos \\
+\code{ast.c/.h} & Nodos del AST y chequeos semánticos al construir cada nodo \\
+\code{intermediate\_code.c}, \code{tac.h} & AST $\rightarrow$ lista de instrucciones TAC; impresión del \code{.ci} \\
+\code{optimizer.c/.h} & Opción \code{-opt} y las pasadas de optimización \\
+\code{object\_code.c/.h} & TAC $\rightarrow$ assembly x86-64 (AT\&T, System V) \\
+\code{main.c} & CLI (\code{-target}, \code{-o}, \code{-opt}, \code{-debug}) y orquestación de las fases \\
+\bottomrule
+\end{tabularx}
+
+% ---------------------------------------------------------------------------
+\needspace{8\baselineskip}
+\section{División del trabajo}
+
+\begin{tabularx}{\textwidth}{cL}
+\toprule
+\textbf{Etapa} & \textbf{Integrantes} \\
+\midrule
+1 & Camila: gramática en \code{parser.y}, números de línea en errores, tests automáticos. Victoria: precedencia y asociatividad. Trinidad: lexer. \\
+2 & Camila: AST y conexión del parser con la tabla de símbolos. Trinidad: tabla de símbolos, chequeo de \code{kind}, cantidad de argumentos, \code{main}, corrección de tests \doc{2}. \\
+3 & Victoria \\
+4 & Trinidad \\
+5 & Camila: correcciones previas (32 bits, Makefile, tests de assembly), \code{extern} y optimizaciones. Trinidad: corrección guion bajo, retorno en todos los caminos, salidas \code{scan}/\code{parse}. Victoria: literal \code{INT\_MIN}, documentación de extensiones, nombres únicos en el TAC. \\
+\bottomrule
+\end{tabularx}
+
+% ---------------------------------------------------------------------------
+\section{Decisiones, asunciones y extensiones}
+
+Solo se nombran las decisiones que difieren de la especificación o que la consigna no deja explícitas. En todo lo demás, el compilador sigue la consigna.
+
+\subsection*{Lenguaje y análisis}
+
+\begin{itemize}
+  \item \textbf{\code{while} con paréntesis} (\code{while (expr) block}), en lugar de \code{while expr block} como en la gramática de la consigna: consultado en clase. Es la forma de C y la misma que usa el \code{if} \doc{1}.
+  \item \textbf{Declaraciones y sentencias en cualquier orden dentro de un bloque}, en lugar de \code{\{ var\_decl* statement* \}} como en la gramática de la consigna. Con una sola lista de ítems la gramática es más simple, y la regla de ``declarado antes de usar'' ya la garantiza la tabla de símbolos \doc{1}.
+  \item \textbf{Recuperación de errores sintácticos} (\code{error ';'}, \code{type id\_list error}) en lugar de detenerse en el primer error, que es lo que hace bison por defecto. Permite reportar varios errores por corrida. El costo es que puede aparecer un error semántico de más (ver Problemas conocidos) (Doc.\ Etapa~1 y~2).
+  \item \textbf{Retorno en todos los caminos con un chequeo conservador}: un \code{if} cuenta solo si tiene \code{else} y las dos ramas retornan, y un \code{while} nunca cuenta. La alternativa era analizar condiciones constantes (\code{while (true)}). Se descartó porque el chequeo simple es fácil de verificar y no depende de las optimizaciones. El costo es que puede rechazar programas que en la práctica siempre retornan \doc{5}.
+  \item \textbf{\code{int} de 32 bits con wrap}, igual que C, en lugar de reportar el overflow en ejecución. Así coinciden el programa, las funciones C enlazadas con \code{extern} y el plegado de constantes, que calcula con la misma aritmética \doc{5}.
+  \item \textbf{\code{float} sin back-end: error explícito al generar assembly.} Antes se generaba código igual, con los literales en 0, y el ejecutable calculaba mal. Implementar \code{float} con registros SSE quedó fuera de alcance. Se prefirió un error claro a un resultado incorrecto. El análisis y el TAC sí aceptan \code{float} \doc{5}.
+  \item \textbf{No se valida la extensión \code{.ctds}}, aunque la consigna la pide, para no renombrar los tests, que usan \code{.txt}. Las salidas se nombran igual con cualquier extensión \doc{5}.
+\end{itemize}
+
+\subsection*{Salidas y línea de comandos}
+
+\begin{itemize}
+  \item \textbf{\code{.lex} lista el lexema y su línea, no el nombre del token.} La consigna no define el contenido. El lexema alcanza para ver qué reconoció el scanner, y el nombre del token exigiría tocar cada regla de \code{lexer.l} \doc{5}.
+  \item \textbf{\code{.sint} contiene el AST} (\code{print\_ast}: un nodo por línea con sangría, su rol en el padre y su tipo). La consigna permite el árbol o solo el resultado del análisis. Se eligió el árbol porque permite verificar la precedencia y los tipos sin depurar. Con \code{-debug} o con entrada por stdin también va a la consola.
+  \item \textbf{\code{-opt} escribe un \code{.opt} aparte} en lugar de reemplazar el \code{.ci}, para comparar el TAC antes y después de optimizar. \doc{5}.
+  \item \textbf{La lista de \code{-opt} es opcional}: el siguiente argumento se toma como lista si no empieza con \code{-} y no tiene punto. Si no, \code{-opt} equivale a \code{-opt all}. Así, un nombre mal escrito (\code{-opt constflod}) da error en vez de tomarse como archivo de entrada \doc{5}.
+\end{itemize}
+
+\subsection*{Extensiones al lenguaje \doc{5}}
+
+\begin{itemize}
+  \item \textbf{Literales \code{float} como en C}: \code{86.}, \code{.05}, \code{5e10}. La consigna se contradice: la producción exige parte entera y fraccionaria, pero el texto dice que los literales reales son ``iguales a los utilizados en C''. Se siguió el texto. Consecuencia: \code{1.2.3} es un error sintáctico y no léxico.
+  \item \textbf{Métodos \code{extern}}: \code{int f(int x) extern;} declara una función definida en C, que se enlaza con \code{c-tds prog.ctds lib.c}. El costo es que \code{extern} pasa a ser palabra reservada.
+  \item \textbf{Literal \code{-2147483648}}: \code{2147483648} solo se acepta como operando del \code{-} unario. No se puede resolver en el lexer, que no sabe si un \code{-} es unario o una resta. Por eso llega como un token especial y se decide sobre el AST (\code{resolve\_int\_min}).
+\end{itemize}
+
+% ---------------------------------------------------------------------------
+\section{Diseño y decisiones clave}
+
+\textbf{Análisis semántico durante el parseo}, en lugar de una pasada aparte sobre el árbol terminado. Cada nodo se crea con su tipo ya calculado y cada identificador resuelve su símbolo mientras su nivel está abierto. En una pasada posterior los niveles ya estarían cerrados, y habría que reconstruir los ámbitos para saber a qué \code{x} se refiere cada uso. Funciona porque la consigna exige declarar antes de usar: al ver un uso, su declaración ya está en la tabla. El costo es que la recuperación de errores sintácticos puede dejar un chequeo incompleto (ver Problemas conocidos). Los errores de tipo se propagan como \code{TYPE\_ERROR} para no reportar en cascada \doc{2}.
+
+\textbf{Tabla de símbolos como pila de niveles}, cada uno una lista enlazada, en lugar de una tabla hash. \code{open\_level}/\code{close\_level} siguen la anidación de los bloques, el ocultamiento sale de buscar desde el tope hacia afuera, y para programas de este tamaño la búsqueda lineal alcanza \doc{2}.
+
+\textbf{AST con listas por \code{next}} en lugar de los nodos \code{NODE\_SEQ} del preproyecto, que agregaban un nodo por sentencia sin representar nada del programa. \textbf{Un único \code{NODE\_BINOP}} con un \code{op\_type} propio, en lugar de un tipo de nodo por operador: el chequeo de tipos, el TAC y las optimizaciones tratan a todos los operadores igual. Los operadores son propios y no los tokens de bison, así el AST no depende del parser \doc{2}.
+
+\textbf{TAC como lista de instrucciones}, en lugar del texto que se escribía en la etapa 3. El generador de assembly necesita saber si cada operando es global, local o parámetro, y extraerlo del texto era frágil. Ahora los operandos guardan su \code{struct symbol *}, y las optimizaciones trabajan sobre esa misma lista \doc{4}.
+
+\textbf{Nombres únicos para variables homónimas en el TAC} (\code{x}, \code{x\_1}), agregando un sufijo solo cuando dos símbolos distintos de un método se llaman igual. La alternativa era agregar siempre el nivel o un identificador del símbolo, pero el TAC quedaba menos legible. Internamente cada operando se identifica por su símbolo, no por el nombre \doc{3}.
+
+\textbf{Cortocircuito en el TAC} con \code{ifFalse}, \code{goto} y etiquetas, en lugar de resolverlo en el generador de assembly. Así el generador no trata \code{\&\&}/\code{||} aparte, y las optimizaciones ven los saltos. La etapa 3 evaluaba los dos operandos y se corrigió en la etapa 4 \doc{4}.
+
+\textbf{Código objeto sin asignación de registros}: cada variable y cada temporal tiene un slot de 8 bytes en la pila, y cada instrucción TAC se traduce con una plantilla fija. La alternativa, asignar registros (por ejemplo, por coloreo de grafos), produce código más rápido pero es mucho más compleja. Se eligió corrección antes que eficiencia, como recomienda la consigna \doc{4}.
+
+\textbf{\code{int} de 32 bits sobre slots de 64}: se mantienen las instrucciones de 64 bits y cada resultado aritmético se normaliza con \code{movslq}. También se normaliza el valor que devuelve un \code{call}: \code{movslq} para \code{int} y \code{movzbq} para \code{bool}. La alternativa era usar instrucciones de 32 bits (\code{addl}, \code{movl}), pero hacía falta una plantilla de carga y guardado distinta según el tipo. Así se cambia una sola instrucción por operación \doc{5}.
+
+\textbf{El \code{float} se detecta en el AST}, no en el generador. En el TAC los temporales no tienen tipo, así que un \code{float} sin literales (un parámetro \code{float} llamado con un \code{int}) no se vería. Además, el chequeo ocurre antes de abrir el \code{.ass} y no queda un archivo a medio escribir \doc{5}.
+
+\textbf{Optimizaciones como pasadas independientes}, no dentro de \code{new\_binop} ni de \code{gen\_expr}. Así se activan por separado con \code{-opt}, el análisis semántico y sus mensajes no dependen de ellas, y el orden entre pasadas queda explícito en un solo lugar \doc{5}.
+
+\textbf{Propagación de constantes local}, por bloque básico: la tabla se vacía en cada etiqueta. La alternativa, un análisis de flujo de datos sobre el grafo de bloques, es más precisa pero más compleja. Repetir \code{constprop} y \code{deadcode} hasta un punto fijo recupera parte de lo que se pierde: al borrar código muerto desaparecen etiquetas \doc{5}.
+
+\begin{tabularx}{\textwidth}{Lll}
+\toprule
+\textbf{Optimización} & \textbf{Sobre} & \textbf{Referencia} \\
+\midrule
+\code{constfold}: plegado de constantes & AST & Doc.\ Etapa~5 \\
+\code{constprop}: propagación de constantes & TAC & Doc.\ Etapa~5 \\
+\code{deadcode}: código inalcanzable & TAC & Doc.\ Etapa~5 \\
+\code{tempslots}: reutilización de slots de temporales & assembly & Doc.\ Etapa~5 \\
+\bottomrule
+\end{tabularx}
+
+% ---------------------------------------------------------------------------
+\section{Detalles de implementación}
+
+\begin{itemize}
+  \item \textbf{Línea de los errores con \code{\%locations}}: bison lee un token de más antes de reducir, así que la línea del último token leído podía ser la siguiente. Cada token guarda su línea en \code{yylloc} y las reglas usan \code{@1.first\_line} \doc{2}.
+  \item \textbf{\code{INT\_MIN}}: \code{2147483648} llega como el token \code{CONSTINT\_MIN} y \code{resolve\_int\_min} lo convierte en literal solo si es el operando directo de un \code{-} unario \doc{5}.
+  \item \textbf{Plegado sin reemplazar nodos}: el nodo plegado se transforma en literal en el mismo lugar, así el padre sigue apuntando a él y se conservan su \code{line} y su \code{next} \doc{5}.
+  \item \textbf{\code{constprop} y \code{deadcode} hasta un punto fijo}: cada una habilita a la otra, así que se repiten hasta que una vuelta no cambia nada. Siempre termina porque ninguna deshace lo que hace la otra \doc{5}.
+  \item \textbf{\code{tempslots}}: calcula la vida de cada temporal y, en cada instrucción, libera los slots que dejan de usarse antes de asignar los nuevos. El frame queda del tamaño del máximo de temporales vivos a la vez \doc{5}.
+  \item \textbf{Borrado en listas con \code{struct tac **pp}}, en lugar de un puntero a la instrucción anterior. El TAC es una lista enlazada, y \code{deadcode} borra muchas instrucciones en una pasada: código inalcanzable, \code{goto} a la instrucción siguiente y etiquetas sin uso. Para borrar una instrucción hay que cambiar el puntero que la apunta, que es la cabeza de la lista o el \code{next} de la anterior. Con un puntero \code{prev} esos son dos casos distintos. \code{pp} guarda la dirección de ese puntero (\code{\&code} al principio, \code{\&anterior->next} después), así que borrar es siempre \code{*pp = i->next}, sin un caso especial para la primera instrucción \doc{5}.
+\end{itemize}
+
+% ---------------------------------------------------------------------------
+\section{Problemas conocidos}
+
+Los 84 tests de \code{make test} pasan. No hay casos de test que fallen.
+
+{\small
+\begin{tabularx}{\textwidth}{P{5.6cm}LL}
+\toprule
+\textbf{Problema} & \textbf{Cómo se detectó} & \textbf{Alternativa propuesta} \\
+\midrule
+\code{float} no se compila a assembly (error explícito). & Revisión del generador (los literales se cargaban como 0) y del \code{.ci}. \doc{3} & Marcar conversiones y traducirlas a assembly con registros SSE \\
+\code{constprop} es local: pierde información en las etiquetas & Diseño \doc{5} & Análisis de flujo de datos (reaching definitions) \\
+Después de un error sintáctico puede aparecer un error semántico de más (``debe retornar un valor en todos los caminos''), porque la recuperación descartó el \code{return} & Prueba manual con un \code{while} mal escrito & No correr ese chequeo en métodos donde hubo un error sintáctico. El programa se rechazaría igual  \\
+El resumen dice ``Fallo en el análisis sintáctico'' también cuando los errores son solo semánticos & Salida de los tests de error & Cambiar el encabezado según el tipo de error y modificar tests \\
+No se valida que la entrada sea \code{.ctds} ni que no empiece con \code{-} & Comparación con la consigna & Validar en \code{main.c} y renombrar los tests \\
+\bottomrule
+\end{tabularx}
+}
+
+% ---------------------------------------------------------------------------
+\section*{Testing}
+
+\code{make test} (\code{run\_tests.sh}) corre 84 casos:
+
+\begin{itemize}
+  \item \textbf{Análisis} (\code{tests/cases/}, 38 programas, 23 con errores): compara stdout y stderr con su \code{<nombre>.expected} en \code{tests/expected/}.
+  \item \textbf{TAC} (11 \code{.ci.expected}) y \textbf{TAC optimizado} (4 \code{.opt.expected}, cada uno solo con las optimizaciones que indica su línea \code{// opt:}).
+  \item \textbf{Ejecución} (\code{tests/asm/}, 15 programas): ensambla, ejecuta y verifica \code{// exit:}, \code{// expect:} (salida de \code{printInt}/\code{printBool}), \code{// error:} y \code{// frame:}. Cada programa corre \textbf{sin optimizar y con \code{-opt all}}, y los dos resultados tienen que coincidir. Los valores esperados se verificaron contra gcc.
+  \item Hay tiempo límite para compilar y ejecutar, así que un ciclo infinito da \code{FAIL}.
+\end{itemize}
+
+\end{document}
