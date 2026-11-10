@@ -57,7 +57,11 @@ int main(int argc, char **argv) {
             if (strcmp(t, "codinter") == 0) target = T_CODINTER;
             else if (strcmp(t, "assembly") == 0) target = T_ASSEMBLY;
             else if (strcmp(t, "scan") == 0) target = T_SCAN;     
-            else if (strcmp(t, "parse") == 0) target = T_PARSE; 
+            else if (strcmp(t, "parse") == 0) target = T_PARSE;
+            else {
+                fprintf(stderr, "Etapa desconocida: '%s' (válidas: scan, parse, codinter, assembly)\n", t);
+                return 1;
+            }
         } else if (strcmp(argv[i], "-o") == 0 && i + 1 < argc) {
             exe_name = argv[++i];
         } else if (strcmp(argv[i], "-debug") == 0) {
