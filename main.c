@@ -151,13 +151,17 @@ int main(int argc, char **argv) {
         } else if (target == T_ASSEMBLY && !input_filename) {
             gen_object_code(code, stdout, opts.tempslots, debug);
         } else if (target == T_PARSE || (target == T_NONE && !input_filename)) {
-            /* -target parse escribe <nombre>.sint; entrada por stdin sin target solo analiza */
+            /* -target parse escribe <nombre>.sint con el AST; entrada por stdin sin target solo analiza.
+               El AST va a consola con -debug, o si la entrada es stdin (no hay archivo de salida) */
+            if (target == T_PARSE && (debug || !input_filename))
+                print_ast(root, stdout);
             if (target == T_PARSE && input_filename) {
                 char sint_name[512];
                 make_out_name(input_filename, ".sint", sint_name, sizeof(sint_name));
                 FILE *s = fopen(sint_name, "w");
                 if (s) {
-                    fprintf(s, "Análisis sintáctico exitoso\n");
+                    fprintf(s, "Análisis sintáctico exitoso\n\n");
+                    print_ast(root, s);
                     fclose(s);
                 } else {
                     fprintf(stderr, "No se pudo crear el archivo %s\n", sint_name);

@@ -379,6 +379,89 @@ struct node *find_float(struct node *n) {
     return NULL;
 }
 
-void print_ast(struct node *t) {
-    (void) t;
+/* ---------- Impresión del AST ---------- */
+
+static void print_node(struct node *n, int depth, const char *role, FILE *out);
+
+/* Imprime cada elemento de una lista enlazada por 'next' con el mismo nivel y rol */
+static void print_list(struct node *list, int depth, const char *role, FILE *out) {
+    for (struct node *n = list; n; n = n->next)
+        print_node(n, depth, role, out);
+}
+
+/* Una línea por nodo: sangría, rol en el padre (cond, then, ...), clase y datos.
+   Los hijos van en las líneas siguientes con un nivel más de sangría. */
+static void print_node(struct node *n, int depth, const char *role, FILE *out) {
+    fprintf(out, "%*s", depth * 2, "");
+    if (role) fprintf(out, "%s: ", role);
+
+    switch (n->kind) {
+    case NODE_PROGRAM:
+        fprintf(out, "PROGRAM\n");
+        print_list(n->left, depth + 1, "global", out);
+        print_list(n->right, depth + 1, NULL, out);
+        break;
+    case NODE_VAR_DECL:
+        fprintf(out, "VAR_DECL %s : %s\n", n->id, type_name(n->data_type));
+        break;
+    case NODE_METHOD_DECL:
+        fprintf(out, "METHOD_DECL %s : %s%s\n", n->id, type_name(n->data_type),
+                n->left ? "" : " extern");
+        print_list(n->right, depth + 1, "param", out);
+        if (n->left) print_node(n->left, depth + 1, "body", out);
+        break;
+    case NODE_BLOCK:
+        fprintf(out, "BLOCK\n");
+        print_list(n->left, depth + 1, NULL, out);
+        break;
+    case NODE_ASSIGN:
+        fprintf(out, "ASSIGN\n");
+        print_node(n->left, depth + 1, NULL, out);
+        print_node(n->right, depth + 1, NULL, out);
+        break;
+    case NODE_CALL:
+        fprintf(out, "CALL %s : %s\n", n->id, type_name(n->data_type));
+        print_list(n->left, depth + 1, "arg", out);
+        break;
+    case NODE_IF:
+        fprintf(out, "IF\n");
+        print_node(n->left, depth + 1, "cond", out);
+        print_node(n->right, depth + 1, "then", out);
+        if (n->third) print_node(n->third, depth + 1, "else", out);
+        break;
+    case NODE_WHILE:
+        fprintf(out, "WHILE\n");
+        print_node(n->left, depth + 1, "cond", out);
+        print_node(n->right, depth + 1, "body", out);
+        break;
+    case NODE_RETURN:
+        fprintf(out, "RETURN\n");
+        if (n->left) print_node(n->left, depth + 1, NULL, out);
+        break;
+    case NODE_BINOP:
+        fprintf(out, "BINOP %s : %s\n", op_name(n->op), type_name(n->data_type));
+        print_node(n->left, depth + 1, NULL, out);
+        print_node(n->right, depth + 1, NULL, out);
+        break;
+    case NODE_UNOP:
+        fprintf(out, "UNOP %s : %s\n", op_name(n->op), type_name(n->data_type));
+        print_node(n->left, depth + 1, NULL, out);
+        break;
+    case NODE_INT:
+        fprintf(out, "INT %d\n", n->value.ival);
+        break;
+    case NODE_FLOAT:
+        fprintf(out, "FLOAT %g\n", n->value.fval);
+        break;
+    case NODE_BOOL:
+        fprintf(out, "BOOL %s\n", n->value.ival ? "true" : "false");
+        break;
+    case NODE_ID:
+        fprintf(out, "ID %s : %s\n", n->id, type_name(n->data_type));
+        break;
+    }
+}
+
+void print_ast(struct node *t, FILE *out) {
+    if (t) print_node(t, 0, NULL, out ? out : stdout);
 }

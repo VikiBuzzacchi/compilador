@@ -3,6 +3,7 @@
 #ifndef AST_H
 #define AST_H
 
+#include <stdio.h>
 #include "symbol_table.h"
 
 enum node_kind {
@@ -76,8 +77,8 @@ extern int semantic_errors;
 struct node *new_id(char *name, int line);
 struct node *new_call(char *name, struct node *args, int line);
 
-// Imprime el árbol indentado
-void print_ast(struct node *t);
+// Imprime el árbol indentado, un nodo por línea, con su rol en el padre y su tipo
+void print_ast(struct node *t, FILE *out);
 
 // Método que se está analizando (lo fija parser.y en method_head); lo usa new_return
 extern struct symbol *current_method;

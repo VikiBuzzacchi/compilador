@@ -381,7 +381,7 @@ int abs(int x) extern;
 ```
 
 - **Palabra reservada.** `extern` no aparece en la especificación. Al agregarla como palabra reservada, un programa que la use como identificador deja de compilar.
-- **Declaración antes de usar.** Igual que el resto de los métodos, el `extern` tiene que aparecer antes de sus llamadas; el lenguaje no tiene forward declarations.
+- **Declaración antes de usar.** Igual que el resto de los métodos, el `extern` tiene que aparecer antes de sus llamadas: la spec exige que "una función puede ser invocada únicamente por código ubicado después de su declaración" (regla 2). Cumple el papel de un prototipo de C.
 - **Enlazado.** El archivo de entrada (`.ctds`) va primero y los archivos que definen los extern (`.c`, `.o` o `.s`) después. En los tests, la línea `// link:` indica qué archivos enlazar.
 - **Contrato ABI.** Solo se soportan `int`, `boolean` y `void`:
   - un extern `int` debe corresponder a una función C que devuelve `int`;
@@ -431,7 +431,7 @@ La implementación está detallada en "Métodos `extern`": el TAC no genera `fun
 
 ## Correcciones a etapas anteriores y salidas de `scan` y `parse`
  
-Se cerraron tres diferencias entre el compilador y la especificación (gramática del lenguaje y tabla de opciones de línea de comandos).
+Se cerraron cinco diferencias entre el compilador y la especificación (gramática del lenguaje, reglas semánticas y tabla de opciones de línea de comandos).
  
 ### 1. Guion bajo en identificadores (lexer, etapa 1)
  
@@ -476,11 +476,80 @@ Salida -> `nombre.lex`: un lexema por línea, `línea N: texto` |
 
 | `-target parse` | 
 Análisis sintáctico y semántico completos 
-Salida -> `nombre.sint`: una línea, `Análisis sintáctico exitoso` |
+Salida -> `nombre.sint`: `Análisis sintáctico exitoso` y el AST (ver "4. Volcado del AST") |
  
 - **`.gitignore`:** se agregaron `*.lex` y `*.sint`.
 
 **Decisiones.**
 - **No se valida la extensión `.ctds`.** El compilador acepta cualquier nombre de entrada y nombra las salidas con el archivo sin su extensión (`x.ctds` produce `x.lex`, `x.sint`, `x.ci`, `x.ass`, `x.out`). Validarla rompería los tests existentes, que usan `.txt`, y los archivos `.ctds` funcionan igual.
 - **`.lex` lista el lexema y su línea, no el nombre del token.** La especificación no define el contenido. El lexema alcanza para ver qué reconoció el scanner, y el nombre del token exigiría tocar cada regla de `lexer.l`.
-- **`.sint` solo informa el resultado.** La etapa 1 permite que la salida del parser sea el árbol "o simplemente si la entrada es correcta o no". Volcar el árbol exige implementar `print_ast`, que hoy está vacío.
+- **`.sint` incluye el AST.** La spec permite que la salida del parser sea el árbol "o simplemente si la entrada es correcta o no". Primero solo se informaba el resultado; ahora se vuelca el árbol (ver "4. Volcado del AST").
+
+### 4. Volcado del AST (`print_ast`)
+`print_ast(root, out)` recorre el AST e imprime un nodo por línea, con 2 espacios de sangría por nivel. Por ejemplo, para:
+
+```c
+int g;
+int doble(int a) {
+    return a * 2;
+}
+int main() {
+    if (doble(3) > 5 && true) {
+        g = 1;
+    } else {
+        g = 0;
+    }
+    return g;
+}
+```
+
+`-target parse` produce:
+
+```
+PROGRAM
+  global: VAR_DECL g : int
+  METHOD_DECL doble : int
+    param: VAR_DECL a : int
+    body: BLOCK
+      RETURN
+        BINOP * : int
+          ID a : int
+          INT 2
+  METHOD_DECL main : int
+    body: BLOCK
+      IF
+        cond: BINOP && : boolean
+          BINOP > : boolean
+            CALL doble : int
+              arg: INT 3
+            INT 5
+          BOOL true
+        then: BLOCK
+          ASSIGN
+            ID g : int
+            INT 1
+        else: BLOCK
+          ASSIGN
+            ID g : int
+            INT 0
+      RETURN
+        ID g : int
+```
+
+Cada línea tiene:
+- **Rol en el padre**, cuando el padre tiene hijos de distinta clase: `global`, `param`, `body`, `cond`, `then`, `else`, `arg`. En un `ASSIGN` o un `BINOP` el orden alcanza (primero el izquierdo).
+- **Clase del nodo** y su dato: nombre, operador o valor. Un método sin cuerpo se marca `extern`.
+- **Tipo calculado por el semántico** (`: int`), así se verifica el chequeo de tipos además de la forma del árbol.
+
+Ningún test usa `-target parse`, así que los `.expected` no cambian.
+
+### 5. `-target` con un valor inválido
+
+**Problema.** Un valor que no era `scan`, `parse`, `codinter` ni `assembly` se ignoraba y se compilaba completo. `-target asembly` (mal escrito) generaba el `.ass` y el `.out` sin avisar.
+
+**Solución (`main.c`).** Se reporta el error y el compilador termina con código 1, igual que con una optimización desconocida en `-opt`:
+
+```
+$ c-tds -target asembly prog.ctds
+Etapa desconocida: 'asembly' (válidas: scan, parse, codinter, assembly)
+```
