@@ -174,7 +174,7 @@ Solo se nombran las decisiones que difieren de la especificación o que la consi
 
 \textbf{Código objeto sin asignación de registros}: cada variable y cada temporal tiene un slot de 8 bytes en la pila, y cada instrucción TAC se traduce con una plantilla fija. La alternativa, asignar registros (por ejemplo, por coloreo de grafos), produce código más rápido pero es mucho más compleja. Se eligió corrección antes que eficiencia, como recomienda la consigna \doc{4}.
 
-\textbf{\code{int} de 32 bits sobre slots de 64}: se mantienen las instrucciones de 64 bits y cada resultado aritmético se normaliza con \code{movslq}. También se normaliza el valor que devuelve un \code{call}: \code{movslq} para \code{int} y \code{movzbq} para \code{bool}. La alternativa era usar instrucciones de 32 bits (\code{addl}, \code{movl}), pero hacía falta una plantilla de carga y guardado distinta según el tipo. Así se cambia una sola instrucción por operación \doc{5}.
+\textbf{\code{int} de 32 bits sobre slots de 64}: se mantienen las instrucciones de 64 bits y cada resultado aritmético se normaliza con \code{movslq}. También se normaliza el valor que devuelve un \code{call}: \code{movslq} para \code{int} y \code{movzbq} para \code{bool}. La alternativa era usar instrucciones de 32 bits (\code{addl}, \code{movl}), pero hacía falta una plantilla de carga y guardado distinta según el tipo. Así se cambia una sola instrucción por operación \doc{5}. Una consecuencia es que \code{INT\_MIN / -1} no termina con \code{SIGFPE} como en gcc: \code{idivq} calcula $+2^{31}$, que entra en 64 bits, y \code{movslq} lo convierte en \code{INT\_MIN}, con el mismo wrap que \code{INT\_MAX + 1} (ver Problemas conocidos).
 
 \textbf{El \code{float} se detecta en el AST}, no en el generador. En el TAC los temporales no tienen tipo, así que un \code{float} sin literales (un parámetro \code{float} llamado con un \code{int}) no se vería. Además, el chequeo ocurre antes de abrir el \code{.ass} y no queda un archivo a medio escribir \doc{5}.
 
@@ -203,7 +203,7 @@ Solo se nombran las decisiones que difieren de la especificación o que la consi
   \item \textbf{\code{constprop} y \code{deadcode} hasta un punto fijo}: cada una habilita a la otra, así que se repiten hasta que una vuelta no cambia nada. Siempre termina porque ninguna deshace lo que hace la otra \doc{5}.
   \item \textbf{\code{tempslots}}: calcula la vida de cada temporal y, en cada instrucción, libera los slots que dejan de usarse antes de asignar los nuevos. El frame queda del tamaño del máximo de temporales vivos a la vez \doc{5}.
   \item \textbf{Borrado en listas con \code{struct tac **pp}}, en lugar de un puntero a la instrucción anterior. El TAC es una lista enlazada, y \code{deadcode} borra muchas instrucciones en una pasada: código inalcanzable, \code{goto} a la instrucción siguiente y etiquetas sin uso. Para borrar una instrucción hay que cambiar el puntero que la apunta, que es la cabeza de la lista o el \code{next} de la anterior. Con un puntero \code{prev} esos son dos casos distintos. \code{pp} guarda la dirección de ese puntero (\code{\&code} al principio, \code{\&anterior->next} después), así que borrar es siempre \code{*pp = i->next}, sin un caso especial para la primera instrucción \doc{5}.
-\end{itemize}
+  \item \textbf{Coerción \code{float} $\to$ \code{int} implícita}: se acepta \code{int x; x = 2.5;} como en C (trunca).\end{itemize}
 
 % ---------------------------------------------------------------------------
 \section{Problemas conocidos}
@@ -215,7 +215,9 @@ Los 84 tests de \code{make test} pasan. No hay casos de test que fallen.
 \toprule
 \textbf{Problema} & \textbf{Cómo se detectó} & \textbf{Alternativa propuesta} \\
 \midrule
-\code{float} no se compila a assembly (error explícito). & Revisión del generador (los literales se cargaban como 0) y del \code{.ci}. \doc{3} & Marcar conversiones y traducirlas a assembly con registros SSE \\
+\code{float} no se compila a assembly (error explícito). La coerción \code{int}/\code{float} se chequea pero no se realiza: no se inserta ninguna conversión en el AST ni en el TAC (\code{f = x} se emite tal cual). Además, \code{\%} acepta operandos \code{float} (en C es un error) & Revisión del generador (los literales se cargaban como 0) y del \code{.ci}. \doc{3} & Marcar las conversiones en el AST, emitirlas en el TAC (\code{t = (float) x}) y traducirlas con registros SSE (\code{cvtsi2sd}, \code{cvttsd2si}). Restringir \code{\%} a \code{int} \\
+Las tablas de slots de cada función (\code{MAX\_SLOTS} = 4096) y los argumentos pendientes de una llamada (256) son arreglos fijos. Si se superan, lo que sobra se ignora sin error y se genera código incorrecto & Revisión de \code{object\_code.c} & Arreglos dinámicos con \code{realloc} (duplicando la capacidad), o al menos un error explícito al superar el límite \\
+\code{x / 0} compila sin aviso, aun con el divisor literal \code{0}. Al ejecutar termina con \code{SIGFPE} (exit 136), igual que C con gcc. & Prueba manual comparando con gcc & Warning en compilación cuando el divisor es el literal \code{0} \\
 \code{constprop} es local: pierde información en las etiquetas & Diseño \doc{5} & Análisis de flujo de datos (reaching definitions) \\
 Después de un error sintáctico puede aparecer un error semántico de más (``debe retornar un valor en todos los caminos''), porque la recuperación descartó el \code{return} & Prueba manual con un \code{while} mal escrito & No correr ese chequeo en métodos donde hubo un error sintáctico. El programa se rechazaría igual  \\
 El resumen dice ``Fallo en el análisis sintáctico'' también cuando los errores son solo semánticos & Salida de los tests de error & Cambiar el encabezado según el tipo de error y modificar tests \\
